@@ -52,14 +52,41 @@
         .fc-event.event-pending { background-color: var(--action-yellow) !important; }
         .fc-event.event-takeover { background-color: var(--action-red) !important; }
         
-        /* Loading Spinner Style */
+        /* Loading Spinner Styles */
         #loader {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 9999;
+            background-color: var(--bg-lavender);
+            transition: opacity 0.5s ease-out;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border-left-color: var(--text-dark);
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader-text {
             font-size: 1.5rem;
             font-family: 'Playfair Display', serif;
+            margin-top: 1.5rem;
+            color: var(--text-dark);
+        }
+        #loader.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -88,7 +115,10 @@
         </nav>
     </header>
 
-    <div id="loader">Loading...</div>
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">Loading Poppy Platform...</div>
+    </div>
     <div id="app-container" class="hidden">
         <!-- All pages will be rendered here -->
     </div>
@@ -104,8 +134,8 @@
     <!-- Add all other modals from your original HTML file here -->
 
     <!-- Non-critical scripts loaded at the end -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js' defer></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
     
     <script type="module">
         const { createClient } = supabase;
@@ -186,10 +216,16 @@
                 case 'signup': setupSignupPage(); break;
                 case 'dashboard': setupDashboardPage(); break;
             }
-            lucide.createIcons();
-            
+            if (typeof lucide !== 'undefined') {
+                 lucide.createIcons();
+            }
+
+            // Hide loader and show app content with a fade effect
             loader.classList.add('hidden');
-            appContainer.classList.remove('hidden');
+            setTimeout(() => {
+                loader.style.display = 'none';
+                appContainer.classList.remove('hidden');
+            }, 500); // Duration should match the CSS transition
         }
 
         function renderNav() {
@@ -214,7 +250,7 @@
                     .single();
 
                 if (error) {
-                    showAlert('Error', 'Could not fetch user profile.', () => handleLogout(false));
+                    showAlert('Error', 'Could not fetch user profile.', () => handleLogout(true));
                     return;
                 }
                 
@@ -225,12 +261,12 @@
                     renderNav();
                     showPage('dashboard');
                 } else if (profile) {
-                    showAlert('Account Pending', 'Your account is still pending admin approval.', () => handleLogout(false));
+                    showAlert('Account Pending', 'Your account is still pending admin approval.', () => handleLogout(true));
                 } else {
-                    showAlert('Profile Error', 'Your user profile could not be found.', () => handleLogout(false));
+                    showAlert('Profile Error', 'Your user profile could not be found.', () => handleLogout(true));
                 }
             } else {
-                handleLogout(true); // Don't show alert on initial load if not logged in
+                handleLogout(true); 
             }
         };
 
