@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' https: wss:;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poppy Platform (Supabase)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-lavender: #E6E0F8;
+            --primary-mint: #C1E1C1; /* Green for Locked/Approved */
+            --primary-lavender: #D6C6E4;
+            --action-pink: #FFC0CB;
+            --action-yellow: #FDFD96; /* Yellow for Pending */
+            --action-red: #FFB3B3;   /* Red for Needs Takeover */
+            --text-dark: #3D3D3D;
+            --shadow-light: rgba(255, 255, 255, 0.7);
+            --shadow-dark: rgba(0, 0, 0, 0.15);
+            --highlight-today: rgba(214, 198, 228, 0.5);
+        }
+        body { font-family: 'Lato', sans-serif; background-color: var(--bg-lavender); color: var(--text-dark); }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .clay-card { border-radius: 20px; background: var(--bg-lavender); box-shadow: -8px -8px 16px var(--shadow-light), 8px 8px 16px var(--shadow-dark); }
+        .clay-inset { border-radius: 16px; background: var(--bg-lavender); box-shadow: inset -4px -4px 8px var(--shadow-light), inset 4px 4px 8px var(--shadow-dark); }
+        .clay-button { border-radius: 16px; background: var(--bg-lavender); font-weight: 700; transition: all 0.1s ease-in-out; box-shadow: -6px -6px 12px var(--shadow-light), 6px 6px 12px var(--shadow-dark); }
+        .clay-button:active { transform: scale(0.98); box-shadow: -2px -2px 6px var(--shadow-light), 2px 2px 6px var(--shadow-dark); }
+        .clay-button-primary { background-color: var(--action-pink); }
+        .clay-button-approve { background-color: var(--primary-mint); }
+        .clay-button-deny { background-color: var(--action-red); }
+        .fc { border: none; }
+        .fc .fc-toolbar-title { font-family: 'Playfair Display', serif; color: var(--text-dark); font-size: 1.25rem; }
+        .fc .fc-button-primary { background-color: var(--primary-lavender) !important; border: none !important; box-shadow: -2px -2px 6px var(--shadow-light), 2px 2px 6px var(--shadow-dark) !important; }
+        .fc .fc-button-primary:active { box-shadow: inset -2px -2px 6px var(--shadow-light), inset 2px 2px 6px var(--shadow-dark) !important; }
+        .fc .fc-daygrid-day-frame { border-radius: 16px; transition: background-color 0.2s; }
+        .fc .fc-daygrid-day:hover .fc-daygrid-day-frame { background-color: rgba(255, 255, 255, 0.4); }
+        .fc .fc-daygrid-day-number { padding: 8px; }
+        .fc .fc-day-today .fc-daygrid-day-frame { background-color: var(--highlight-today); }
+        .fc-event { border: none !important; border-radius: 10px !important; padding: 4px 8px !important; box-shadow: -3px -3px 8px var(--shadow-light), 3px 3px 8px var(--shadow-dark) !important; cursor: pointer; }
+        .fc-event-main { font-weight: 600; color: var(--text-dark) !important; }
+        .fc-event.event-locked { background-color: var(--primary-mint) !important; }
+        .fc-event.event-pending { background-color: var(--action-yellow) !important; }
+        .fc-event.event-takeover { background-color: var(--action-red) !important; }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <!-- Main Navigation (shown after login) -->
+    <header id="main-header" class="hidden clay-card p-4 mb-8 sticky top-4 z-40">
+        <nav class="flex flex-wrap items-center justify-between gap-4">
+            <div id="nav-links" class="flex items-center gap-2">
+                <!-- Nav links are populated by JS -->
+            </div>
+            <div class="relative">
+                <button id="profile-button" class="flex items-center gap-3">
+                    <div class="bg-white p-2 rounded-full shadow-inner">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14C15.3137 14 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#831843"/><path d="M12 14C9.33333 14 4 15.3333 4 18V22H20V18C20 15.3333 14.6667 14 12 14Z" fill="#d97706"/><path d="M12 2C13.5 2 15 3 15 5C15 7 12 9 12 9C12 9 9 7 9 5C9 3 10.5 2 12 2Z" fill="#fdf8f6"/></svg>
+                    </div>
+                    <span id="profile-name" class="font-playfair font-bold text-xl"></span>
+                </button>
+                <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 clay-card p-2 z-50">
+                     <a href="#" data-page="userProfile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">Profile</a>
+                     <a href="#" data-page="userManagement" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">User Management</a>
+                     <a href="#" data-page="bonusRules" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">Bonus Rules</a>
+                     <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">Logout</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="app-container">
+        <!-- All pages will be rendered here -->
+    </div>
+    
+    <!-- All Modals -->
+    <div id="alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="clay-card w-full max-w-sm p-6 sm:p-8 text-center">
+            <h2 id="alert-title" class="font-playfair text-2xl font-bold text-gray-700 mb-4"></h2>
+            <p id="alert-message" class="text-gray-600 mb-6"></p>
+            <button type="button" id="alert-ok-btn" class="clay-button clay-button-primary w-full p-3 text-lg text-gray-800">OK</button>
+        </div>
+    </div>
+    <!-- Other Modals here -->
+
+    <script type="module">
+        const { createClient } = supabase;
+        // --- Supabase Initialization ---
+        // IMPORTANT: The URL is derived from your ANON KEY.
+        const SUPABASE_URL = 'https://lmzxjxumfqrjvcnsrfbr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtenhqeHVtZnFqcnZjbnNyZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDUzNDIsImV4cCI6MjA2NjA4MTM0Mn0.7vd1mZzXKYjf64b_lRmPUR0KM_4VdgJMxsDVrCEYbTw';
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        /*
+            ******************************************************************
+            *** ONE-TIME DATABASE SETUP (IMPORTANT!) ***
+            ******************************************************************
+            To make user signups work correctly, you need to run a SQL script
+            in your Supabase project ONE TIME. This automatically creates a user
+            profile when a new user signs up.
+
+            1. Go to your Supabase project dashboard.
+            2. Click on the "SQL Editor" icon in the left menu.
+            3. Click "+ New query".
+            4. Copy ALL the text below and paste it into the query window.
+            5. Click the "RUN" button.
+
+            --- COPY FROM HERE ---
+            -- Creates a function that inserts a new row into public.profiles
+            create or replace function public.handle_new_user()
+            returns trigger
+            language plpgsql
+            security definer set search_path = public
+            as $$
+            begin
+              insert into public.profiles (id, name, email, role, status)
+              values (new.id, new.raw_user_meta_data->>'name', new.email, 'seller', 'pending');
+              return new;
+            end;
+            $$;
+
+            -- Creates a trigger that fires after a new user is created in the auth system
+            drop trigger if exists on_auth_user_created on auth.users;
+            create trigger on_auth_user_created
+              after insert on auth.users
+              for each row execute procedure public.handle_new_user();
+            --- END COPY ---
+        */
+
+
+        // --- TEMPLATES FOR EACH PAGE ---
+        const pageTemplates = {
+            login: `
+                <div class="w-full max-w-md mx-auto">
+                    <header class="text-center mb-8"><div class="inline-block bg-white p-4 rounded-full shadow-md mb-4 clay-card"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14C15.3137 14 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#831843"/><path d="M12 14C9.33333 14 4 15.3333 4 18V22H20V18C20 15.3333 14.6667 14 12 14Z" fill="#d97706"/><path d="M12 2C13.5 2 15 3 15 5C15 7 12 9 12 9C12 9 9 7 9 5C9 3 10.5 2 12 2Z" fill="#fdf8f6"/></svg></div><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Welcome Back</h1><p class="text-gray-500 mt-2">Log in to access your dashboard.</p></header>
+                    <form id="login-form" class="clay-card p-6 sm:p-8 space-y-6">
+                        <div><label for="login-email" class="block text-sm font-medium mb-2">Email Address</label><input type="email" id="login-email" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div>
+                        <div><label for="login-password" class="block text-sm font-medium mb-2">Password</label><input type="password" id="login-password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div>
+                        <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Login</button></div>
+                    </form>
+                    <div class="text-center mt-6"><p class="text-sm">Don't have an account? <a href="#" id="show-signup" class="font-semibold hover:underline" style="color: #831843;">Sign Up</a></p></div>
+                </div>`,
+            signup: `
+                <div class="w-full max-w-md mx-auto">
+                    <header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Create Your Account</h1><p class="text-gray-500 mt-2">Join the Poppy Platform.</p></header>
+                    <form id="signup-form" class="clay-card p-6 sm:p-8 space-y-6">
+                        <div><label for="fullname" class="block text-sm font-medium mb-2">Full Name</label><input type="text" id="fullname" name="fullname" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div>
+                        <div><label for="email" class="block text-sm font-medium mb-2">Email Address</label><input type="email" id="email" name="email" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div>
+                        <div><label for="password" class="block text-sm font-medium mb-2">Password</label><input type="password" id="password" name="password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div>
+                        <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Create Account</button></div>
+                    </form>
+                    <div class="text-center mt-6"><p class="text-sm">Already have an account? <a href="#" id="show-login" class="font-semibold hover:underline" style="color: #831843;">Login</a></p></div>
+                </div>`,
+            // Other page templates here...
+        };
+
+        // --- Global State & App Variables ---
+        const appContainer = document.getElementById('app-container');
+        const mainHeader = document.getElementById('main-header');
+        let state = {
+            isLoggedIn: false,
+            currentUser: null,
+            profile: null,
+            currentPage: 'login',
+        };
+        let channels = []; // To hold real-time subscriptions
+
+        // --- Global Helper Functions ---
+        const showAlert = (title, message, onOk) => {
+             const modal = document.getElementById('alert-modal');
+             const okBtn = document.getElementById('alert-ok-btn');
+             if (!modal || !okBtn) return;
+             document.getElementById('alert-title').textContent = title;
+             document.getElementById('alert-message').textContent = message;
+             modal.classList.remove('hidden');
+             const handler = () => {
+                 modal.classList.add('hidden');
+                 if(onOk) onOk();
+                 okBtn.removeEventListener('click', handler);
+             }
+             okBtn.addEventListener('click', handler);
+        };
+
+        // --- Page Setup & Rendering ---
+        function showPage(pageName) {
+            // Unsubscribe from all real-time channels before switching pages
+            channels.forEach(channel => _supabase.removeChannel(channel));
+            channels = [];
+
+            if (!pageTemplates[pageName]) return;
+            appContainer.innerHTML = pageTemplates[pageName];
+            state.currentPage = pageName;
+            
+            switch (pageName) {
+                case 'login': setupLoginPage(); break;
+                case 'signup': setupSignupPage(); break;
+                // ... other page setups
+            }
+            lucide.createIcons();
+        }
+
+        // --- Supabase Auth & Data Handling ---
+        const checkUser = async () => {
+            const { data: { session }, error } = await _supabase.auth.getSession();
+            if (error) { console.error('Error getting session:', error); return; }
+
+            if (session && session.user) {
+                const { data: profile, error: profileError } = await _supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('Error fetching profile:', profileError.message);
+                    // This can happen if the trigger hasn't fired yet, or failed.
+                    // We log them out to be safe.
+                    handleLogout();
+                    return;
+                }
+                
+                if (profile && profile.status === 'approved') {
+                    state.currentUser = session.user;
+                    state.profile = profile;
+                    state.isLoggedIn = true;
+                    // renderNav(); // You would create this function
+                    if (state.currentPage === 'login' || state.currentPage === 'signup') {
+                        // showPage('dashboard'); // You would create this page
+                    }
+                } else if (profile) {
+                    showAlert('Account Pending', 'Your account is still pending admin approval.', handleLogout);
+                } else {
+                    // This case should ideally not be reached if the trigger works.
+                    showAlert('Profile Error', 'Your user profile could not be found.', handleLogout);
+                }
+            } else {
+                handleLogout();
+            }
+        };
+
+        _supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                checkUser();
+            } else if (event === 'SIGNED_OUT') {
+                if (state.isLoggedIn) handleLogout();
+            }
+        });
+
+        async function handleLogout() {
+            const { error } = await _supabase.auth.signOut();
+            if (error) { showAlert('Logout Error', error.message); }
+            state.isLoggedIn = false;
+            state.currentUser = null;
+            state.profile = null;
+            // renderNav();
+            showPage('login');
+        }
+        
+        // --- Page-Specific Initializers ---
+        function setupLoginPage() {
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                const { error } = await _supabase.auth.signInWithPassword({ email, password });
+                if (error) showAlert('Login Failed', error.message);
+            });
+            document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
+        }
+
+        function setupSignupPage() {
+            document.getElementById('signup-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('fullname').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                // The trigger will automatically create the profile.
+                // We just need to pass the name in the user metadata.
+                const { data, error } = await _supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: name
+                        }
+                    }
+                });
+
+                if (error) {
+                    showAlert('Signup Failed', error.message);
+                } else {
+                    showAlert('Account Created', 'Thank you for signing up! Please check your email to verify your account. Your account will then be pending admin approval.', () => {
+                         showPage('login');
+                    });
+                }
+            });
+            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showPage('login'); });
+        }
+        
+        // --- App Initialization ---
+        showPage('login');
+
+    </script>
+</body>
+</html>
