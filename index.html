@@ -698,7 +698,7 @@
             }
 
             async function update() {
-                let query = _supabase.from('logged_sessions').select('*, seller:profiles(full_name)');
+                let query = _supabase.from('logged_sessions').select('*, profiles(full_name)');
 
                 if (role === 'seller') { 
                     query = query.eq('seller_id', profile.id);
