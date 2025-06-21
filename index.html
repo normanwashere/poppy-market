@@ -124,15 +124,15 @@
     </div>
     
     <!-- All Modals -->
-    <div id="alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="clay-card w-full max-w-sm p-6 sm:p-8 text-center">
-            <h2 id="alert-title" class="font-playfair text-2xl font-bold text-gray-700 mb-4"></h2>
-            <p id="alert-message" class="text-gray-600 mb-6"></p>
-            <button type="button" id="alert-ok-btn" class="clay-button clay-button-primary w-full p-3 text-lg text-gray-800">OK</button>
-        </div>
-    </div>
+    <div id="alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
     <div id="log-session-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <!-- Add other modals as needed -->
+    <div id="booking-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="user-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="bonus-rule-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="delete-confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+
 
     <!-- Non-critical scripts loaded at the end -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js' defer></script>
@@ -141,7 +141,7 @@
     <script type="module">
         const { createClient } = supabase;
         // --- Supabase Initialization ---
-        const SUPABASE_URL = 'https://lmzxjxumfqjrvcnsrfbr.supabase.co';
+        const SUPABASE_URL = 'https://lmzxjxumfqrjvcnsrfbr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtenhqeHVtZnFqcnZjbnNyZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDUzNDIsImV4cCI6MjA2NjA4MTM0Mn0.7vd1mZzXKYjf64b_lRmPUR0KM_4VdgJMxsDVrCEYbTw';
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -169,7 +169,10 @@
                     <div class="text-center mt-6"><p class="text-sm">Already have an account? <a href="#" id="show-login" class="font-semibold hover:underline" style="color: #831843;">Login</a></p></div>
                 </div>`,
             dashboard: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 id="dashboard-title" class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700"></h1><p id="dashboard-subtitle" class="text-gray-500 mt-2"></p></header><div id="dashboard-container"></div></div>`,
-            // ... other templates will go here
+            scheduler: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Live Session Scheduler</h1><p class="text-gray-500 mt-2">Book your upcoming live sessions.</p></header><div class="clay-card p-2 sm:p-6 mb-8"><div id='calendar'></div></div></div>`,
+            userManagement: `<div class="w-full max-w-4xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">User Management</h1><p class="text-gray-500 mt-2">Approve new seller accounts and manage existing users.</p></header><div id="user-list-container" class="clay-card overflow-hidden"></div></div>`,
+            bonusRules: `<div class="w-full max-w-5xl mx-auto"><header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4"><div class="text-center sm:text-left"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Bonus Rules</h1><p class="text-gray-500 mt-2">Create and manage performance-based bonus schemes.</p></div><button id="create-new-rule-btn" class="clay-button clay-button-primary w-full sm:w-auto px-6 py-4 text-lg">Create New Rule</button></header><div id="bonus-rules-list" class="space-y-4"></div></div>`,
+            userProfile: `<div class="w-full max-w-2xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Profile</h1><p class="text-gray-500 mt-2">Update your personal information and password.</p></header><form id="profile-info-form" class="clay-card p-6 sm:p-8 space-y-8 mb-8"><fieldset><legend class="font-playfair text-2xl font-bold mb-4">Contact Information</legend><div class="grid grid-cols-1 sm:grid-cols-2 gap-6"><div><label for="profile-gcash" class="block text-sm font-medium mb-2">GCash Number</label><input type="text" id="profile-gcash" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div><div><label for="profile-contact" class="block text-sm font-medium mb-2">Contact Number</label><input type="text" id="profile-contact" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div><div class="sm:col-span-2"><label for="profile-emergency" class="block text-sm font-medium mb-2">Emergency Contact</label><input type="text" id="profile-emergency" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div></div></fieldset><div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Save Information</button></div></form><form id="password-change-form" class="clay-card p-6 sm:p-8 space-y-8"><fieldset><legend class="font-playfair text-2xl font-bold mb-4">Change Password</legend><div class="space-y-6"><div><label for="profile-new-password" class="block text-sm font-medium mb-2">New Password</label><input type="password" id="profile-new-password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div></div></fieldset><div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Change Password</button></div></form></div>`
         };
 
         // --- Global State & App Variables ---
@@ -186,18 +189,13 @@
 
         // --- Global Helper Functions ---
         const showAlert = (title, message, onOk) => {
-             const modal = document.getElementById('alert-modal');
-             const okBtn = document.getElementById('alert-ok-btn');
-             if (!modal || !okBtn) return;
-             document.getElementById('alert-title').textContent = title;
-             document.getElementById('alert-message').textContent = message;
-             modal.classList.remove('hidden');
-             const handler = () => {
-                 modal.classList.add('hidden');
+             const modalContainer = document.getElementById('alert-modal');
+             modalContainer.innerHTML = `<div class="clay-card w-full max-w-sm p-6 sm:p-8 text-center"><h2 class="font-playfair text-2xl font-bold text-gray-700 mb-4">${title}</h2><p class="text-gray-600 mb-6">${message}</p><button type="button" id="alert-ok-btn" class="clay-button clay-button-primary w-full p-3 text-lg text-gray-800">OK</button></div>`;
+             modalContainer.classList.remove('hidden');
+             document.getElementById('alert-ok-btn').onclick = () => {
+                 modalContainer.classList.add('hidden');
                  if(onOk) onOk();
-                 okBtn.removeEventListener('click', handler);
              }
-             okBtn.addEventListener('click', handler);
         };
 
         // --- Page Setup & Rendering ---
@@ -212,51 +210,55 @@
             appContainer.innerHTML = pageTemplates[pageName];
             state.currentPage = pageName;
             
-            switch (pageName) {
-                case 'login': setupLoginPage(); break;
-                case 'signup': setupSignupPage(); break;
-                case 'dashboard': setupDashboardPage(); break;
-            }
-            if (typeof lucide !== 'undefined') {
-                 lucide.createIcons();
-            }
+            // This structure ensures that page-specific setup runs only after the page is in the DOM
+            document.addEventListener('page-rendered', () => {
+                switch (pageName) {
+                    case 'login': setupLoginPage(); break;
+                    case 'signup': setupSignupPage(); break;
+                    case 'dashboard': setupDashboardPage(); break;
+                    case 'scheduler': setupSchedulerPage(); break;
+                    case 'userManagement': setupUserManagementPage(); break;
+                    case 'bonusRules': setupBonusRulesPage(); break;
+                    case 'userProfile': setupUserProfilePage(); break;
+                }
+                if (typeof lucide !== 'undefined') {
+                     lucide.createIcons();
+                }
+            }, { once: true });
+            
+            // Dispatch a custom event to signal that the new page is ready for its setup script.
+            document.dispatchEvent(new Event('page-rendered'));
 
-            // Hide loader and show app content with a fade effect
             if(loader.style.display !== 'none'){
                  loader.classList.add('hidden');
                  setTimeout(() => {
                     loader.style.display = 'none';
                     appContainer.classList.remove('hidden');
-                }, 500); // Duration should match the CSS transition
+                }, 500); 
             }
         }
 
         function renderNav() {
             const profileName = document.getElementById('profile-name');
+            const navLinks = document.getElementById('nav-links');
             if (state.isLoggedIn && state.profile) {
                 mainHeader.classList.remove('hidden');
                 profileName.textContent = state.profile.name;
+                navLinks.innerHTML = `<button data-page="dashboard" class="clay-button px-4 py-2 text-sm">Dashboard</button><button data-page="scheduler" class="clay-button px-4 py-2 text-sm">Scheduler</button>`;
             } else {
                 mainHeader.classList.add('hidden');
             }
         }
         
         // --- Supabase Auth & Data Handling ---
-        const checkUser = async () => {
+        async function checkUser() {
             const { data: { session } } = await _supabase.auth.getSession();
-
             if (session && session.user) {
-                const { data: profile, error } = await _supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
+                const { data: profile, error } = await _supabase.from('profiles').select('*').eq('id', session.user.id).single();
                 if (error) {
                     showAlert('Error', 'Could not fetch user profile.', () => handleLogout(true));
                     return;
                 }
-                
                 if (profile && profile.status === 'approved') {
                     state.currentUser = session.user;
                     state.profile = profile;
@@ -271,21 +273,16 @@
             } else {
                 handleLogout(true); 
             }
-        };
+        }
 
         _supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') {
-                checkUser();
-            } else if (event === 'SIGNED_OUT') {
-                handleLogout(false);
-            }
+            if (event === 'SIGNED_IN') checkUser();
+            else if (event === 'SIGNED_OUT') handleLogout(false);
         });
 
         async function handleLogout(isInitial=false) {
             if(!isInitial) await _supabase.auth.signOut();
-            state.isLoggedIn = false;
-            state.currentUser = null;
-            state.profile = null;
+            state = { isLoggedIn: false, currentUser: null, profile: null, currentPage: 'login' };
             renderNav();
             showPage('login');
         }
@@ -294,10 +291,10 @@
         function setupLoginPage() {
             document.getElementById('login-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                
-                const { error } = await _supabase.auth.signInWithPassword({ email, password });
+                const { error } = await _supabase.auth.signInWithPassword({
+                    email: e.target.elements['login-email'].value,
+                    password: e.target.elements['login-password'].value,
+                });
                 if (error) showAlert('Login Failed', error.message);
             });
             document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
@@ -306,114 +303,39 @@
         function setupSignupPage() {
             document.getElementById('signup-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('fullname').value;
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-
-                const { data, error } = await _supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            name: name
-                        }
-                    }
+                const { error } = await _supabase.auth.signUp({
+                    email: e.target.elements.email.value,
+                    password: e.target.elements.password.value,
+                    options: { data: { name: e.target.elements.fullname.value } }
                 });
-
-                if (error) {
-                    showAlert('Signup Failed', error.message);
-                } else {
-                    showAlert('Account Created', 'Thank you for signing up! Please check your email to verify your account. Your account will then be pending admin approval.', () => {
-                         showPage('login');
-                    });
-                }
+                if (error) showAlert('Signup Failed', error.message);
+                else showAlert('Account Created', 'Thank you for signing up! Please check your email to verify your account.', () => showPage('login'));
             });
-            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
+            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showPage('login'); });
         }
         
         function setupDashboardPage() {
-            const dashboardTitle = document.getElementById('dashboard-title');
-            const dashboardSubtitle = document.getElementById('dashboard-subtitle');
-            const dashboardContainer = document.getElementById('dashboard-container');
-            
-            if (state.profile) {
-                 dashboardTitle.textContent = "Dashboard";
-                 dashboardSubtitle.textContent = `Welcome back, ${state.profile.name}!`;
-
-                 if (state.profile.role === 'admin') {
-                     initializeAdminDashboard(dashboardContainer);
-                 } else {
-                     initializeSellerDashboard(dashboardContainer);
-                 }
-            }
-        }
-
-        // --- Dashboard Logic ---
-        function initializeSellerDashboard(container) {
-            container.innerHTML = `
-                <div class="clay-card p-4 mb-8">
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div class="flex-grow flex flex-wrap items-end gap-4">
-                            <!-- Filter options can be added here -->
-                        </div>
-                        <div class="w-full sm:w-auto mt-4 sm:mt-0">
-                             <button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button>
-                        </div>
-                    </div>
-                </div>
-                 <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                    <div class="md:col-span-2 clay-card p-6 flex flex-col justify-center"><div class="flex items-center justify-between text-gray-600 mb-2"><h3 id="final-pay-label" class="text-lg font-semibold uppercase tracking-wider">Final Pay</h3><i data-lucide="wallet" class="text-gray-500"></i></div><p id="final-pay" class="font-playfair text-6xl font-bold" style="color: #831843;">₱0.00</p></div>
-                    <div class="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Live Duration</h3><p id="live-duration" class="font-playfair text-3xl font-bold text-gray-800 mt-2">0.0 <span class="text-xl align-baseline">hrs</span></p></div>
-                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Base Pay</h3><p id="base-pay" class="font-playfair text-3xl font-bold text-gray-800 mt-2">₱0.00</p></div>
-                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Branded Sold</h3><p id="branded-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
-                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Free Size Sold</h3><p id="free-size-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
-                    </div>
-                </div>
-                 <div class="clay-card overflow-hidden"><h2 class="text-xl p-6 font-bold font-playfair border-b-2 border-dashed border-lavender-300">Logged Entries</h2><div id="table-container" class="overflow-x-auto"><table class="w-full table-auto"><thead class="text-gray-600"><tr><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Date</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Duration</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Branded</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Free Size</th></tr></thead><tbody id="table-body"></tbody></table></div><div id="no-entries" class="text-center p-8 text-gray-500 hidden">No entries found.</div></div>`;
-            
-            lucide.createIcons();
-            runDashboardLogic('seller');
-        }
-
-        async function runDashboardLogic(role) {
-            const tableBody = document.getElementById('table-body');
-            const noEntriesMessage = document.getElementById('no-entries');
-            
-            let query = _supabase.from('session_logs').select('*');
-            if (role === 'seller') {
-                query = query.eq('seller_id', state.currentUser.id);
-            }
-            
-            const { data: logs, error } = await query.order('start_time', { ascending: false });
-
-            if (error) {
-                showAlert('Error', 'Could not fetch session logs.');
-                return;
-            }
-
-            if (logs.length === 0) {
-                noEntriesMessage.classList.remove('hidden');
-                tableBody.innerHTML = '';
+            const container = document.getElementById('dashboard-container');
+            if (state.profile.role === 'admin') {
+                document.getElementById('dashboard-title').textContent = "Admin Dashboard";
+                document.getElementById('dashboard-subtitle').textContent = "Platform-wide performance overview.";
+                initializeAdminDashboard(container);
             } else {
-                noEntriesMessage.classList.add('hidden');
-                tableBody.innerHTML = logs.map((log, index) => {
-                    const itemDate = new Date(log.start_time);
-                    return `
-                        <tr class="transition-colors duration-200 hover:bg-primary-lavender/60 ${index % 2 !== 0 ? 'bg-[rgba(0,0,0,0.04)]' : ''}">
-                            <td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString()}</td>
-                            <td class="p-4 whitespace-nowrap">${log.live_duration.toFixed(2)} hrs</td>
-                            <td class="p-4 whitespace-nowrap">${log.branded_items}</td>
-                            <td class="p-4 whitespace-nowrap">${log.free_size}</td>
-                        </tr>
-                    `;
-                }).join('');
+                document.getElementById('dashboard-title').textContent = "Dashboard";
+                document.getElementById('dashboard-subtitle').textContent = `Welcome back, ${state.profile.name}!`;
+                initializeSellerDashboard(container);
             }
         }
         
-        // --- App Initialization ---
-        checkUser(); // Check user status on initial load
+        async function initializeAdminDashboard(container) { /* Admin dashboard logic here */ }
+        async function initializeSellerDashboard(container) { /* Seller dashboard logic here */ }
+        
+        // Add other setup functions...
 
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            checkUser(); // Check user on initial load
+        });
     </script>
 </body>
 </html>
