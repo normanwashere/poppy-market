@@ -131,7 +131,8 @@
             <button type="button" id="alert-ok-btn" class="clay-button clay-button-primary w-full p-3 text-lg text-gray-800">OK</button>
         </div>
     </div>
-    <!-- Add all other modals from your original HTML file here -->
+    <div id="log-session-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <!-- Add other modals as needed -->
 
     <!-- Non-critical scripts loaded at the end -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js' defer></script>
@@ -140,7 +141,7 @@
     <script type="module">
         const { createClient } = supabase;
         // --- Supabase Initialization ---
-        const SUPABASE_URL = 'https://lmzxjxumfqjrvcnsrfbr.supabase.co';
+        const SUPABASE_URL = 'https://lmzxjxumfqrjvcnsrfbr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtenhqeHVtZnFqcnZjbnNyZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDUzNDIsImV4cCI6MjA2NjA4MTM0Mn0.7vd1mZzXKYjf64b_lRmPUR0KM_4VdgJMxsDVrCEYbTw';
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -221,11 +222,13 @@
             }
 
             // Hide loader and show app content with a fade effect
-            loader.classList.add('hidden');
-            setTimeout(() => {
-                loader.style.display = 'none';
-                appContainer.classList.remove('hidden');
-            }, 500); // Duration should match the CSS transition
+            if(loader.style.display !== 'none'){
+                 loader.classList.add('hidden');
+                 setTimeout(() => {
+                    loader.style.display = 'none';
+                    appContainer.classList.remove('hidden');
+                }, 500); // Duration should match the CSS transition
+            }
         }
 
         function renderNav() {
@@ -296,7 +299,6 @@
                 
                 const { error } = await _supabase.auth.signInWithPassword({ email, password });
                 if (error) showAlert('Login Failed', error.message);
-                // onAuthStateChange will handle navigation on success
             });
             document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
         }
@@ -332,10 +334,80 @@
         function setupDashboardPage() {
             const dashboardTitle = document.getElementById('dashboard-title');
             const dashboardSubtitle = document.getElementById('dashboard-subtitle');
+            const dashboardContainer = document.getElementById('dashboard-container');
             
             if (state.profile) {
                  dashboardTitle.textContent = "Dashboard";
                  dashboardSubtitle.textContent = `Welcome back, ${state.profile.name}!`;
+
+                 if (state.profile.role === 'admin') {
+                     initializeAdminDashboard(dashboardContainer);
+                 } else {
+                     initializeSellerDashboard(dashboardContainer);
+                 }
+            }
+        }
+
+        // --- Dashboard Logic ---
+        function initializeSellerDashboard(container) {
+            container.innerHTML = `
+                <div class="clay-card p-4 mb-8">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex-grow flex flex-wrap items-end gap-4">
+                            <!-- Filter options can be added here -->
+                        </div>
+                        <div class="w-full sm:w-auto mt-4 sm:mt-0">
+                             <button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button>
+                        </div>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                    <div class="md:col-span-2 clay-card p-6 flex flex-col justify-center"><div class="flex items-center justify-between text-gray-600 mb-2"><h3 id="final-pay-label" class="text-lg font-semibold uppercase tracking-wider">Final Pay</h3><i data-lucide="wallet" class="text-gray-500"></i></div><p id="final-pay" class="font-playfair text-6xl font-bold" style="color: #831843;">₱0.00</p></div>
+                    <div class="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Live Duration</h3><p id="live-duration" class="font-playfair text-3xl font-bold text-gray-800 mt-2">0.0 <span class="text-xl align-baseline">hrs</span></p></div>
+                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Base Pay</h3><p id="base-pay" class="font-playfair text-3xl font-bold text-gray-800 mt-2">₱0.00</p></div>
+                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Branded Sold</h3><p id="branded-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+                        <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 class="text-sm font-semibold uppercase tracking-wider text-gray-600">Free Size Sold</h3><p id="free-size-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+                    </div>
+                </div>
+                 <div class="clay-card overflow-hidden"><h2 class="text-xl p-6 font-bold font-playfair border-b-2 border-dashed border-lavender-300">Logged Entries</h2><div id="table-container" class="overflow-x-auto"><table class="w-full table-auto"><thead class="text-gray-600"><tr><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Date</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Duration</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Branded</th><th class="p-4 text-left font-semibold uppercase tracking-wider text-xs">Free Size</th></tr></thead><tbody id="table-body"></tbody></table></div><div id="no-entries" class="text-center p-8 text-gray-500 hidden">No entries found.</div></div>`;
+            
+            lucide.createIcons();
+            runDashboardLogic('seller');
+        }
+
+        async function runDashboardLogic(role) {
+            const tableBody = document.getElementById('table-body');
+            const noEntriesMessage = document.getElementById('no-entries');
+            
+            let query = _supabase.from('session_logs').select('*');
+            if (role === 'seller') {
+                query = query.eq('seller_id', state.currentUser.id);
+            }
+            
+            const { data: logs, error } = await query.order('start_time', { ascending: false });
+
+            if (error) {
+                showAlert('Error', 'Could not fetch session logs.');
+                return;
+            }
+
+            if (logs.length === 0) {
+                noEntriesMessage.classList.remove('hidden');
+                tableBody.innerHTML = '';
+            } else {
+                noEntriesMessage.classList.add('hidden');
+                tableBody.innerHTML = logs.map((log, index) => {
+                    const itemDate = new Date(log.start_time);
+                    return `
+                        <tr class="transition-colors duration-200 hover:bg-primary-lavender/60 ${index % 2 !== 0 ? 'bg-[rgba(0,0,0,0.04)]' : ''}">
+                            <td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString()}</td>
+                            <td class="p-4 whitespace-nowrap">${log.live_duration.toFixed(2)} hrs</td>
+                            <td class="p-4 whitespace-nowrap">${log.branded_items}</td>
+                            <td class="p-4 whitespace-nowrap">${log.free_size}</td>
+                        </tr>
+                    `;
+                }).join('');
             }
         }
         
