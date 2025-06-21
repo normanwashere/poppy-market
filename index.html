@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poppy Platform (Supabase)</title>
+    <title>Poppy Platform</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,7 +96,15 @@
             <button type="button" id="alert-ok-btn" class="clay-button clay-button-primary w-full p-3 text-lg text-gray-800">OK</button>
         </div>
     </div>
-    <!-- Other Modals here -->
+    <!-- Add all other modals from your original HTML file here -->
+    <div id="log-session-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="booking-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="user-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="bonus-rule-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="delete-confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+    <div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
+
 
     <script type="module">
         const { createClient } = supabase;
@@ -165,7 +173,44 @@
                     </form>
                     <div class="text-center mt-6"><p class="text-sm">Already have an account? <a href="#" id="show-login" class="font-semibold hover:underline" style="color: #831843;">Login</a></p></div>
                 </div>`,
-            // Other page templates here...
+            dashboard: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 id="dashboard-title" class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700"></h1><p id="dashboard-subtitle" class="text-gray-500 mt-2"></p></header><div id="dashboard-container"></div></div>`,
+            scheduler: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Live Session Scheduler</h1><p class="text-gray-500 mt-2">Book your upcoming live sessions.</p></header><div class="clay-card p-2 sm:p-6 mb-8"><div id='calendar'></div></div></div>`,
+            userManagement: `
+                <div class="w-full max-w-4xl mx-auto">
+                    <header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">User Management</h1><p class="text-gray-500 mt-2">Approve new seller accounts and manage existing users.</p></header>
+                    <div id="user-list-container" class="clay-card overflow-hidden"></div>
+                </div>`,
+            bonusRules: `
+                <div class="w-full max-w-5xl mx-auto">
+                    <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                        <div class="text-center sm:text-left">
+                           <h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Bonus Rules</h1>
+                           <p class="text-gray-500 mt-2">Create and manage performance-based bonus schemes.</p>
+                        </div>
+                        <button id="create-new-rule-btn" class="clay-button clay-button-primary w-full sm:w-auto px-6 py-4 text-lg">Create New Rule</button>
+                    </header>
+                    <div id="bonus-rules-list" class="space-y-4"></div>
+                </div>`,
+            userProfile: `
+                <div class="w-full max-w-2xl mx-auto">
+                    <header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Profile</h1><p class="text-gray-500 mt-2">Update your personal information and password.</p></header>
+                    <form id="profile-info-form" class="clay-card p-6 sm:p-8 space-y-8 mb-8">
+                         <fieldset><legend class="font-playfair text-2xl font-bold mb-4">Contact Information</legend>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div><label for="profile-gcash" class="block text-sm font-medium mb-2">GCash Number</label><input type="text" id="profile-gcash" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
+                                <div><label for="profile-contact" class="block text-sm font-medium mb-2">Contact Number</label><input type="text" id="profile-contact" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
+                                <div class="sm:col-span-2"><label for="profile-emergency" class="block text-sm font-medium mb-2">Emergency Contact</label><input type="text" id="profile-emergency" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
+                            </div>
+                         </fieldset>
+                         <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Save Information</button></div>
+                    </form>
+                     <form id="password-change-form" class="clay-card p-6 sm:p-8 space-y-8">
+                         <fieldset><legend class="font-playfair text-2xl font-bold mb-4">Change Password</legend>
+                            <p class="text-sm text-gray-600">The app does not handle password changes directly. A password reset link will be sent to your email.</p>
+                         </fieldset>
+                         <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Send Password Reset Email</button></div>
+                    </form>
+                </div>`
         };
 
         // --- Global State & App Variables ---
@@ -208,7 +253,7 @@
             switch (pageName) {
                 case 'login': setupLoginPage(); break;
                 case 'signup': setupSignupPage(); break;
-                // ... other page setups
+                // ... other page setups would go here
             }
             lucide.createIcons();
         }
@@ -227,8 +272,6 @@
 
                 if (profileError) {
                     console.error('Error fetching profile:', profileError.message);
-                    // This can happen if the trigger hasn't fired yet, or failed.
-                    // We log them out to be safe.
                     handleLogout();
                     return;
                 }
@@ -244,7 +287,6 @@
                 } else if (profile) {
                     showAlert('Account Pending', 'Your account is still pending admin approval.', handleLogout);
                 } else {
-                    // This case should ideally not be reached if the trigger works.
                     showAlert('Profile Error', 'Your user profile could not be found.', handleLogout);
                 }
             } else {
