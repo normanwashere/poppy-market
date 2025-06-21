@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poppy Platform</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
-    
+
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
@@ -77,7 +77,7 @@
             <div class="relative">
                 <button id="profile-button" class="flex items-center gap-3">
                     <div class="bg-white p-2 rounded-full shadow-inner">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14C15.3137 14 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#831843"/><path d="M12 14C9.33333 14 4 15.3333 4 18V22H20V18C20 15.3333 14.6667 14 12 14Z" fill="#d97706"/><path d="M12 2C13.5 2 15 3 15 5C15 7 12 9 12 9C12 9 9 7 9 5C9 3 10.5 2 12 2Z" fill="#fdf8f6"/></svg>
+                        <img src="https://dgtalbay.static.domains/Profile%20pic.png" alt="Profile Picture" class="h-6 w-6 object-cover rounded-full">
                     </div>
                     <span id="profile-name" class="font-playfair font-bold text-xl"></span>
                 </button>
@@ -97,7 +97,7 @@
 
         // --- TEMPLATES (Pages & Modals) ---
         const pageTemplates = {
-            login: `<div class="w-full max-w-md mx-auto"><header class="text-center mb-8"><div class="inline-block bg-white p-4 rounded-full shadow-md mb-4 clay-card"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14C15.3137 14 18 11.3137 18 8C18 4.68629 15.3137 2 12 2Z" fill="#831843"/><path d="M12 14C9.33333 14 4 15.3333 4 18V22H20V18C20 15.3333 14.6667 14 12 14Z" fill="#d97706"/><path d="M12 2C13.5 2 15 3 15 5C15 7 12 9 12 9C12 9 9 7 9 5C9 3 10.5 2 12 2Z" fill="#fdf8f6"/></svg></div><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Welcome Back</h1><p class="text-gray-500 mt-2">Log in to access your dashboard.</p></header><form id="login-form" class="clay-card p-6 sm:p-8 space-y-6"><div><label for="login-email" class="block text-sm font-medium mb-2">Email Address</label><input type="email" id="login-email" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div><label for="login-password" class="block text-sm font-medium mb-2">Password</label><input type="password" id="login-password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Login</button></div></form><div class="text-center mt-6"><p class="text-sm">Don't have an account? <a href="#" data-page="signup" class="font-semibold hover:underline" style="color: #831843;">Sign Up</a></p></div></div>`, //
+            login: `<div class="w-full max-w-md mx-auto"><header class="text-center mb-8"><div class="inline-block bg-white p-4 rounded-full shadow-md mb-4 clay-card"><img src="/images/icon%202.png" alt="Poppy Platform Icon" class="w-10 h-10"></div><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Welcome Back</h1><p class="text-gray-500 mt-2">Log in to access your dashboard.</p></header><form id="login-form" class="clay-card p-6 sm:p-8 space-y-6"><div><label for="login-email" class="block text-sm font-medium mb-2">Email Address</label><input type="email" id="login-email" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div><label for="login-password" class="block text-sm font-medium mb-2">Password</label><input type="password" id="login-password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Login</button></div></form><div class="text-center mt-6"><p class="text-sm">Don't have an account? <a href="#" data-page="signup" class="font-semibold hover:underline" style="color: #831843;">Sign Up</a></p></div></div>`, //
             signup: `<div class="w-full max-w-md mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Create Your Account</h1><p class="text-gray-500 mt-2">Join the Poppy Platform.</p></header><form id="signup-form" class="clay-card p-6 sm:p-8 space-y-6"><div><label for="fullname" class="block text-sm font-medium mb-2">Full Name</label><input type="text" id="fullname" name="fullname" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div><label for="email" class="block text-sm font-medium mb-2">Email Address</label><input type="email" id="email" name="email" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div><label for="password" class="block text-sm font-medium mb-2">Password</label><input type="password" id="password" name="password" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Create Account</button></div></form><div class="text-center mt-6"><p class="text-sm">Already have an account? <a href="#" data-page="login" class="font-semibold hover:underline" style="color: #831843;">Login</a></p></div></div>`, //
             dashboard: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 id="dashboard-title" class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700"></h1><p id="dashboard-subtitle" class="text-gray-500 mt-2"></p></header><div id="dashboard-container"></div></div>`, //
             scheduler: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Live Session Scheduler</h1><p class="text-gray-500 mt-2">Book your upcoming live sessions.</p></header><div class="clay-card p-2 sm:p-6 mb-8"><div id='calendar'></div></div></div>`, //
@@ -113,6 +113,7 @@
             userDetails: `<div id="user-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-lg p-6 sm:p-8"><h2 id="user-details-name" class="font-playfair text-3xl font-bold text-gray-700 mb-6"></h2><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-500">GCash Number</label><p id="user-details-gcash" class="clay-inset w-full p-4 text-lg"></p></div><div><label class="block text-sm font-medium text-gray-500">Contact Number</label><p id="user-details-contact" class="clay-inset w-full p-4 text-lg"></p></div><div><label class="block text-sm font-medium text-gray-500">Emergency Contact</label><p id="user-details-emergency" class="clay-inset w-full p-4 text-lg"></p></div></div><button type="button" id="close-user-details-btn" class="clay-button w-full p-4 text-xl text-gray-700 mt-8">Close</button></div></div>`, //
             createBonusRule: `<div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-3xl p-6 sm:p-8 flex flex-col max-h-[95vh]"><h2 class="font-playfair text-3xl font-bold text-gray-700 mb-6 flex-shrink-0">Create New Bonus Rule</h2><form id="bonus-rule-form" class="space-y-6 overflow-y-auto pr-2"><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Basic Information</h3><div class="space-y-4"><div><label for="rule-name" class="block text-sm font-medium mb-1">Rule Name</label><input type="text" id="rule-name" placeholder="e.g., Monthly Excellence Bonus" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-description" class="block text-sm font-medium mb-1">Description</label><textarea id="rule-description" placeholder="Brief description of the bonus requirements" rows="3" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></textarea></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Active Period</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="rule-start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="rule-start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="rule-end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Target Requirements (All must be met)</h3><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label for="rule-live-hours" class="block text-sm font-medium mb-1">Live Hours Target</label><input type="number" id="rule-live-hours" placeholder="e.g., 40" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-branded-items" class="block text-sm font-medium mb-1">Branded Items Target</label><input type="number" id="rule-branded-items" placeholder="e.g., 60" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-free-size" class="block text-sm font-medium mb-1">Free Size Target</label><input type="number" id="rule-free-size" placeholder="e.g., 100" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div></div></div><div class="clay-card p-6"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="rule-time-frame" class="block text-sm font-medium mb-1">Time Frame</label><select id="rule-time-frame" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div><div><label for="rule-bonus-amount" class="block text-sm font-medium mb-1">Bonus Amount (₱)</label><input type="number" step="0.01" id="rule-bonus-amount" placeholder="0.00" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div></div></div><div class="pt-4 flex flex-col sm:flex-row gap-4 flex-shrink-0"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Create Rule</button><button type="button" id="cancel-bonus-rule-btn" class="clay-button w-full p-4 text-xl text-gray-700">Cancel</button></div></form></div></div>`, //
             deleteConfirmation: `<div id="delete-confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-md p-6 sm:p-8"><h2 class="font-playfair text-2xl font-bold text-gray-700 mb-4">Confirm Deletion</h2><p id="delete-confirm-message" class="text-gray-600 mb-6"></p><form id="delete-confirm-form"><div class="pt-6 flex flex-col sm:flex-row gap-4"><button type="submit" id="confirm-delete-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Delete</button><button type="button" id="cancel-delete-btn" class="clay-button w-full p-4 text-xl">Cancel</button></div></form></div></div>`, //
+            passwordConfirm: `<div id="password-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-md p-6 sm:p-8"><h2 class="font-playfair text-2xl font-bold text-gray-700 mb-4">Confirm Deletion with Password</h2><p class="text-gray-600 mb-6">Please enter your password to confirm this action. This cannot be undone.</p><form id="password-confirm-form" class="space-y-4"><div><label for="delete-password-input" class="block text-sm font-medium mb-2">Password</label><input type="password" id="delete-password-input" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div class="pt-4 flex flex-col sm:flex-row gap-4"><button type="submit" class="clay-button clay-button-deny w-full p-4 text-xl">Confirm Delete</button><button type="button" id="cancel-password-confirm-btn" class="clay-button w-full p-4 text-xl">Cancel</button></div></form></div></div>`, // New modal for password confirmation
             bonusRuleDetails: `<div id="bonus-rule-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-2xl p-6 sm:p-8"><h2 id="bonus-details-name" class="font-playfair text-3xl font-bold text-gray-700 mb-2"></h2><p id="bonus-details-description" class="text-gray-600 mb-6"></p><div class="space-y-4"><div class="clay-card p-4"><h3 class="font-playfair text-xl font-bold mb-2">Targets</h3><ul id="bonus-details-targets" class="list-disc list-inside space-y-1"></ul></div><div class="clay-card p-4"><h3 class="font-playfair text-xl font-bold mb-2">Details</h3><div class="grid grid-cols-2 gap-4"><p><strong>Bonus:</strong> <span id="bonus-details-amount"></span></p><p><strong>Time Frame:</strong> <span id="bonus-details-timeframe"></span></p><p><strong>Starts:</strong> <span id="bonus-details-start"></span></p><p><strong>Ends:</strong> <span id="bonus-details-end"></span></p></div></div></div><button type="button" id="close-bonus-details-btn" class="clay-button w-full p-4 text-xl text-gray-700 mt-8">Close</button></div></div>` //
         };
 
@@ -125,7 +126,7 @@
         const profileDropdown = document.getElementById('profile-dropdown');
         const profileButton = document.getElementById('profile-button');
         const profileName = document.getElementById('profile-name');
-        
+
         let calendarInstance = null;
         let channels = [];
         let state = {
@@ -197,7 +198,7 @@
             if (!pageTemplates[pageName]) return;
             appContainer.innerHTML = pageTemplates[pageName];
             state.currentPage = pageName;
-            
+
             appContainer.querySelectorAll('[data-page]').forEach(el => {
                 el.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -221,9 +222,9 @@
             if (state.isLoggedIn && state.profile) {
                 mainHeader.classList.remove('hidden'); //
                 profileName.textContent = state.profile.full_name || 'User';
-                
+
                 navLinksContainer.innerHTML = `<button data-page="dashboard" class="clay-button px-4 py-2 text-sm">Dashboard</button><button data-page="scheduler" class="clay-button px-4 py-2 text-sm">Scheduler</button>`; //
-                
+
                 let dropdownLinks = `<a href="#" data-page="userProfile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">Profile</a>`; //
                 if (state.profile.role === 'admin') {
                     dropdownLinks += `<a href="#" data-page="userManagement" class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-lavender rounded-lg">User Management</a>
@@ -238,7 +239,7 @@
                 mainHeader.classList.add('hidden'); //
             }
         }
-        
+
         async function checkUserSession() {
             setLoading(true);
             const { data: { session }, error } = await _supabase.auth.getSession();
@@ -289,12 +290,12 @@
             state.currentUser = null;
             state.profile = null;
             state.currentPage = 'login'; //
-            
+
             if (channels.length > 0) {
                 channels.forEach(channel => _supabase.removeChannel(channel));
                 channels = [];
             }
-            
+
             renderNav();
             showPage('login');
             setLoading(false);
@@ -306,14 +307,20 @@
                 e.preventDefault(); //
                 const email = document.getElementById('login-email').value; //
                 const password = document.getElementById('login-password').value; //
+                const loginButton = e.target.querySelector('button[type="submit"]');
 
                 setLoading(true);
+                loginButton.disabled = true; // Disable button
+                loginButton.textContent = 'Logging in...'; // Change text
+
                 const { error } = await _supabase.auth.signInWithPassword({ email, password });
-                
+
                 if (error) {
                     showAlert('Login Failed', error.message); //
                     setLoading(false);
                 }
+                loginButton.disabled = false; // Re-enable button
+                loginButton.textContent = 'Login'; // Reset text
             });
         }
 
@@ -323,6 +330,10 @@
                 const full_name = document.getElementById('fullname').value; //
                 const email = document.getElementById('email').value; //
                 const password = document.getElementById('password').value; //
+                const signupButton = e.target.querySelector('button[type="submit"]');
+
+                signupButton.disabled = true;
+                signupButton.textContent = 'Creating Account...';
 
                 const { data, error } = await _supabase.auth.signUp({
                     email,
@@ -337,9 +348,11 @@
                         showPage('login'); //
                     }); //
                 }
+                signupButton.disabled = false;
+                signupButton.textContent = 'Create Account';
             });
         }
-        
+
         function setupDashboardPage() {
             const container = document.getElementById('dashboard-container'); //
             if (state.profile.role === 'admin') { //
@@ -356,7 +369,7 @@
         function setupSchedulerPage() {
             initializeScheduler();
         }
-        
+
         async function setupUserProfilePage() {
             if (!state.profile) { showPage('login'); return; }
 
@@ -366,6 +379,10 @@
 
             document.getElementById('profile-info-form').addEventListener('submit', async e => { //
                 e.preventDefault(); //
+                const saveInfoButton = e.target.querySelector('button[type="submit"]');
+                saveInfoButton.disabled = true;
+                saveInfoButton.textContent = 'Saving...';
+
                 const updates = {
                     id: state.currentUser.id,
                     gcash_number: document.getElementById('profile-gcash').value, //
@@ -380,23 +397,32 @@
                     state.profile = {...state.profile, ...updates};
                     showAlert('Success', 'Your information has been updated.'); //
                 }
+                saveInfoButton.disabled = false;
+                saveInfoButton.textContent = 'Save Information';
             });
 
             document.getElementById('password-change-form').addEventListener('submit', async e => { //
                 e.preventDefault(); //
                 const newPassword = document.getElementById('profile-new-password').value; //
                 const confirmPassword = document.getElementById('profile-confirm-password').value; //
+                const changePasswordButton = e.target.querySelector('button[type="submit"]');
+
 
                 if (!newPassword || newPassword !== confirmPassword) { //
                     showAlert('Error', 'Passwords do not match. Please try again.'); //
                     return;
                 }
+                changePasswordButton.disabled = true;
+                changePasswordButton.textContent = 'Changing...';
+
                 const { error } = await _supabase.auth.updateUser({ password: newPassword });
                 if(error) showAlert('Error', 'Failed to change password: ' + error.message);
                 else {
                     showAlert('Success', 'Your password has been changed successfully.'); //
                     e.target.reset(); //
                 }
+                changePasswordButton.disabled = false;
+                changePasswordButton.textContent = 'Change Password';
             });
         }
 
@@ -409,25 +435,34 @@
 
             const userChannel = _supabase.channel('public:profiles')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-                    renderUserList(); 
+                    renderUserList();
                 })
                 .subscribe();
             channels.push(userChannel);
         }
-        
+
         async function setupBonusRulesPage() {
             if (state.profile.role !== 'admin') { showPage('login'); return; } //
-            
+
             const createRuleBtn = document.getElementById('create-new-rule-btn'); //
             const modal = document.getElementById('create-bonus-rule-modal'); //
             const form = document.getElementById('bonus-rule-form'); //
-            const cancelBtn = document.getElementById('cancel-bonus-rule-btn'); //
-            
+            const cancelBtn = document.getElementById('cancel-bonus-rule-btn');
+            const passwordConfirmModal = document.getElementById('password-confirm-modal');
+            const passwordConfirmForm = document.getElementById('password-confirm-form');
+            const deletePasswordInput = document.getElementById('delete-password-input');
+            const cancelPasswordConfirmBtn = document.getElementById('cancel-password-confirm-btn');
+
+
             createRuleBtn.addEventListener('click', () => { form.reset(); modal.classList.remove('hidden'); }); //
             cancelBtn.addEventListener('click', () => { modal.classList.add('hidden'); }); //
-            
+
             form.addEventListener('submit', async (e) => { //
                 e.preventDefault(); //
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating...';
+
                 const newRule = {
                     name: document.getElementById('rule-name').value, //
                     description: document.getElementById('rule-description').value, //
@@ -447,25 +482,75 @@
                     modal.classList.add('hidden'); //
                     showAlert('Success', 'New bonus rule has been created.'); //
                 }
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Rule';
             });
 
             document.getElementById('delete-confirm-form').addEventListener('submit', async (e) => { //
                 e.preventDefault(); //
-                if (state.ruleToDelete !== null) {
-                    const { error } = await _supabase.from('bonus_rules').delete().eq('id', state.ruleToDelete);
-                    if (error) showAlert('Error', 'Failed to delete rule: ' + error.message);
-                    else {
-                        renderBonusRulesList(); //
-                        document.getElementById('delete-confirmation-modal').classList.add('hidden'); //
-                        showAlert('Success', 'Bonus rule has been deleted.'); //
-                    }
-                    state.ruleToDelete = null;
-                }
+                // Close the initial confirm modal (deleteConfirmationModal)
+                document.getElementById('delete-confirmation-modal').classList.add('hidden');
+
+                // Open the password confirmation modal
+                passwordConfirmModal.classList.remove('hidden');
+                deletePasswordInput.value = ''; // Clear previous password input
             });
 
             document.getElementById('cancel-delete-btn').addEventListener('click', () => { //
                 document.getElementById('delete-confirmation-modal').classList.add('hidden'); //
             });
+
+            // New listeners for the password confirmation modal
+            cancelPasswordConfirmBtn.addEventListener('click', () => {
+                passwordConfirmModal.classList.add('hidden');
+                document.getElementById('delete-confirmation-modal').classList.add('hidden'); // Also close the first confirm modal
+            });
+
+            passwordConfirmForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const password = deletePasswordInput.value;
+                const confirmDeleteBtn = e.target.querySelector('button[type="submit"]');
+
+                if (!password) {
+                    showAlert('Error', 'Please enter your password.');
+                    return;
+                }
+
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.textContent = 'Verifying...';
+
+                // Re-authenticate the user
+                const { error: authError } = await _supabase.auth.signInWithPassword({
+                    email: state.currentUser.email, // Use the current user's email
+                    password: password,
+                });
+
+                if (authError) {
+                    showAlert('Authentication Failed', 'Incorrect password. Please try again.');
+                    deletePasswordInput.value = ''; // Clear password field
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.textContent = 'Confirm Delete';
+                    return;
+                }
+
+                // If authentication is successful, proceed with deletion
+                if (state.ruleToDelete !== null) {
+                    const { error: deleteError } = await _supabase.from('bonus_rules').delete().eq('id', state.ruleToDelete);
+                    if (deleteError) {
+                        showAlert('Error', 'Failed to delete rule: ' + deleteError.message);
+                    } else {
+                        renderBonusRulesList();
+                        showAlert('Success', 'Bonus rule has been deleted.');
+                    }
+                    state.ruleToDelete = null;
+                }
+
+                passwordConfirmModal.classList.add('hidden'); // Close password modal
+                document.getElementById('delete-confirmation-modal').classList.add('hidden'); // Close initial confirm modal if still open
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.textContent = 'Confirm Delete';
+            });
+
 
             await renderBonusRulesList();
         }
@@ -513,11 +598,11 @@
             });
             lucide.createIcons();
         }
-        
+
         async function showUserDetailsModal(userId) {
             const { data: user, error } = await _supabase.from('profiles').select('*').eq('id', userId).single();
             if (error || !user) return showAlert('Error', 'Could not fetch user details.');
-            
+
             document.getElementById('user-details-name').textContent = user.full_name; //
             document.getElementById('user-details-gcash').textContent = user.gcash_number || 'Not set'; //
             document.getElementById('user-details-contact').textContent = user.contact_number || 'Not set'; //
@@ -528,7 +613,7 @@
         async function renderUserList() {
             const container = document.getElementById('user-list-container'); //
             if (!container) return; //
-            
+
             const { data: users, error } = await _supabase.from('profiles').select('*').neq('role', 'admin').order('full_name');
             if (error) return showAlert('Error', 'Failed to fetch users: ' + error.message);
 
@@ -546,7 +631,7 @@
                     </div>
                 </div>
             `).join('')}</div>`; //
-            
+
             document.querySelectorAll('.view-user-details').forEach(el => el.addEventListener('click', (e) => showUserDetailsModal(e.currentTarget.dataset.userid))); //
             document.querySelectorAll('.approve-user-btn').forEach(button => { //
                 button.addEventListener('click', async (e) => { //
@@ -557,7 +642,7 @@
                 });
             });
         }
-        
+
         // --- Dashboard Module (Full Implementation) ---
         function initializeAdminDashboard(container) {
             container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
@@ -574,7 +659,7 @@
             <div class="clay-card overflow-hidden"><h2 id="logged-entries-title" class="text-xl p-6 font-bold font-playfair border-b-2 border-dashed border-lavender-300"></h2><div id="table-container" class="overflow-x-auto"><table class="w-full table-auto"><thead class="text-gray-600"><tr></tr></thead><tbody id="table-body"></tbody></table></div><div id="no-entries" class="text-center p-8 text-gray-500 hidden">No entries found.</div><div id="pagination-controls" class="p-4 flex items-center justify-between flex-wrap gap-2"><span id="page-info" class="text-sm"></span><div class="flex items-center gap-2"><button id="prev-page" class="clay-button p-2 disabled:opacity-50"><i data-lucide="chevron-left"></i></button><button id="next-page" class="clay-button p-2 disabled:opacity-50"><i data-lucide="chevron-right"></i></button></div></div></div>`; //
             runDashboardLogic('admin'); //
         }
-        
+
         function initializeSellerDashboard(container){
              container.innerHTML = `
                 <div class="clay-card p-4 mb-8"><div class="flex flex-col sm:flex-row items-center justify-between gap-4"><div class="flex-grow flex flex-wrap items-end gap-4"><div><label for="date-filter" class="block text-sm font-medium mb-1">Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div><div id="custom-date-filters" class="hidden flex-grow sm:flex items-end gap-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="w-full sm:w-auto mt-4 sm:mt-0"><button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button></div></div></div>
@@ -627,7 +712,7 @@
             async function showBonusDetailsModal(ruleId) { //
                 const { data: rule, error } = await _supabase.from('bonus_rules').select('*').eq('id', ruleId).single(); //
                 if (error || !rule) return; //
-                
+
                 document.getElementById('bonus-details-name').textContent = rule.name; //
                 document.getElementById('bonus-details-description').textContent = rule.description; //
                 document.getElementById('bonus-details-amount').textContent = `₱${rule.bonus_amount.toFixed(2)}`; //
@@ -641,7 +726,7 @@
                     <li>Branded Items: ${rule.branded_items_target}</li>
                     <li>Free Size Items: ${rule.free_size_target}</li>
                 `; //
-                
+
                 document.getElementById('bonus-rule-details-modal').classList.remove('hidden'); //
                 document.getElementById('close-bonus-details-btn').onclick = () => { //
                      document.getElementById('bonus-rule-details-modal').classList.add('hidden'); //
@@ -666,8 +751,8 @@
 
                 bonusCardsContainer.innerHTML = activeRules.map(rule => {
                     let earnedAmount = 0; //
-                    if (targetMetrics.liveHours >= rule.live_hours_target && 
-                        targetMetrics.brandedItems >= rule.branded_items_target && 
+                    if (targetMetrics.liveHours >= rule.live_hours_target &&
+                        targetMetrics.brandedItems >= rule.branded_items_target &&
                         targetMetrics.freeSize >= rule.free_size_target) { //
                         earnedAmount = rule.bonus_amount; //
                     }
@@ -700,7 +785,7 @@
             async function update() {
                 let query = _supabase.from('logged_sessions').select('*, profiles(full_name)');
 
-                if (role === 'seller') { 
+                if (role === 'seller') {
                     query = query.eq('seller_id', profile.id);
                 } else if(sellerFilter) {
                     const selectedSellerId = sellerFilter.value;
@@ -708,7 +793,7 @@
                         query = query.eq('seller_id', selectedSellerId);
                     }
                 }
-                
+
                 let range = { start: null, end: null }; //
                  switch (dateFilter.value) { //
                     case 'This Week': range = getWeekRange('this'); break; //
@@ -728,7 +813,7 @@
 
                 const { data, error } = await query;
                 if(error) { showAlert('Error', 'Could not fetch session data: ' + error.message); return; }
-                
+
                 dashboardFilteredData = data;
 
                 const metrics = dashboardFilteredData.reduce((acc, item) => { //
@@ -744,14 +829,14 @@
                 let totalBonusAmount = 0; //
                 if (rules) {
                     rules.forEach(rule => { //
-                         if (metrics.duration >= rule.live_hours_target && 
-                             metrics.branded >= rule.branded_items_target && 
+                         if (metrics.duration >= rule.live_hours_target &&
+                             metrics.branded >= rule.branded_items_target &&
                              metrics.freeSize >= rule.free_size_target) { //
                              totalBonusAmount += rule.bonus_amount; //
                          }
                     });
                 }
-                
+
                 await renderBonusCards(dashboardFilteredData, range);
 
 
@@ -798,7 +883,7 @@
                     const itemDate = new Date(item.session_start_time); //
                     const row = document.createElement('tr'); //
                     row.className = 'transition-colors duration-200 hover:bg-primary-lavender/60 ' + (index % 2 !== 0 ? 'bg-[rgba(0,0,0,0.04)]' : ''); //
-                    row.innerHTML = `<td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td> ${role === 'admin' ? `<td class="p-4 whitespace-nowrap">${item.seller.full_name}</td>` : ''} <td class="p-4 whitespace-nowrap">${item.live_duration_hours.toFixed(2)} hrs</td> <td class="p-4 whitespace-nowrap">${item.branded_items_sold}</td> <td class="p-4 whitespace-nowrap">${item.free_size_items_sold}</td>`; //
+                    row.innerHTML = `<td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td> ${role === 'admin' ? `<td class="p-4 whitespace-nowrap">${item.profiles.full_name}</td>` : ''} <td class="p-4 whitespace-nowrap">${item.live_duration_hours.toFixed(2)} hrs</td> <td class="p-4 whitespace-nowrap">${item.branded_items_sold}</td> <td class="p-4 whitespace-nowrap">${item.free_size_items_sold}</td>`; //
                     tableBody.appendChild(row); //
                  });
             }
@@ -823,7 +908,7 @@
                 });
                 return th; //
             }
-            
+
             if (role === 'admin' && sellerFilter) {
                 const { data: sellers, error } = await _supabase.from('profiles').select('id, full_name').eq('role', 'seller').order('full_name');
                 if (sellers) {
@@ -832,9 +917,11 @@
                 sellerFilter.addEventListener('change', () => { dashboardCurrentPage = 1; update(); }); //
             } else if (role === 'seller') {
                 const logSessionModal = document.getElementById('log-session-modal'); //
-                const sessionLogForm = document.getElementById('session-log-form'); //
-                
-                document.getElementById('open-log-session-modal').addEventListener('click', () => { //
+                const sessionLogForm = document.getElementById('session-log-form');
+                const logSessionButton = document.getElementById('open-log-session-modal');
+
+
+                logSessionButton.addEventListener('click', () => { //
                     sessionLogForm.reset(); //
                     logSessionModal.classList.remove('hidden'); //
                 });
@@ -844,17 +931,31 @@
 
                 sessionLogForm.addEventListener('submit', async (e) => { //
                     e.preventDefault(); //
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting Log...';
+
                     const startStr = document.getElementById('session-start').value; //
                     const endStr = document.getElementById('session-end').value; //
                     const branded = parseInt(document.getElementById('branded-items').value) || 0; //
                     const freeSize = parseInt(document.getElementById('free-size-items').value) || 0; //
 
-                    if (!startStr || !endStr) { showAlert('Error', 'Please select both a start and end time.'); return; } //
+                    if (!startStr || !endStr) {
+                        showAlert('Error', 'Please select both a start and end time.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Log';
+                        return;
+                    }
                     const startDate = new Date(startStr); //
                     const endDate = new Date(endStr); //
-                    if (endDate <= startDate) { showAlert('Error', 'End time must be after the start time.'); return; } //
+                    if (endDate <= startDate) {
+                        showAlert('Error', 'End time must be after the start time.');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Log';
+                        return;
+                    }
                     const duration = (endDate - startDate) / (1000 * 60 * 60); //
-                    
+
                     const newEntry = {
                         session_start_time: startDate.toISOString(),
                         session_end_time: endDate.toISOString(),
@@ -871,6 +972,8 @@
                         logSessionModal.classList.add('hidden'); //
                         showAlert('Success', 'Your session has been logged successfully!'); //
                     }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Log';
                 });
             }
 
@@ -884,7 +987,7 @@
             endDateInput.addEventListener('change', () => { dashboardCurrentPage = 1; update(); }); //
             prevPageBtn.addEventListener('click', () => { if(dashboardCurrentPage > 1) { dashboardCurrentPage--; renderDashboardTable(); renderDashboardPagination(); } }); //
             nextPageBtn.addEventListener('click', () => { const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage); if(dashboardCurrentPage < totalPages) { dashboardCurrentPage++; renderDashboardTable(); renderDashboardPagination(); } }); //
-            
+
             await update();
         }
 
@@ -893,7 +996,7 @@
             const calendarEl = document.getElementById('calendar'); //
             if (!calendarEl) return; //
             if(calendarInstance) { calendarInstance.destroy(); calendarInstance = null; } //
-            
+
             const bookingModal = document.getElementById('booking-modal'); //
             const eventDetailsModal = document.getElementById('event-details-modal'); //
             const bookingForm = document.getElementById('booking-form'); //
@@ -904,8 +1007,10 @@
             const eventDetailsTime = document.getElementById('event-details-time'); //
             const eventDetailsStatus = document.getElementById('event-details-status'); //
             const eventDetailsActions = document.getElementById('event-details-actions'); //
-            const closeDetailsBtn = document.getElementById('close-details-btn'); //
-            
+            const closeDetailsBtn = document.getElementById('close-details-btn');
+            const bookSessionBtn = document.getElementById('book-session-btn');
+
+
             let currentSelectionInfo = null; //
             const { profile } = state;
 
@@ -959,7 +1064,7 @@
                     const activeEvent = info.event; //
                     const props = activeEvent.extendedProps; //
                     const isMine = props.owner_id === profile.id; //
-                    
+
                     eventDetailsTitle.textContent = activeEvent.title; //
                     eventDetailsTime.textContent = `From ${activeEvent.start.toLocaleTimeString()} to ${activeEvent.end.toLocaleTimeString()}`; //
                     eventDetailsStatus.textContent = `Status: ${props.status.charAt(0).toUpperCase() + props.status.slice(1).replace('_', ' ')}`; //
@@ -969,22 +1074,34 @@
                         if (props.status === 'pending') { //
                             eventDetailsActions.innerHTML = `<button id="approve-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve</button><button id="deny-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Deny</button>`; //
                             document.getElementById('approve-btn').onclick = async () => { //
+                                const approveBtn = document.getElementById('approve-btn');
+                                approveBtn.disabled = true;
+                                approveBtn.textContent = 'Approving...';
                                 await _supabase.from('calendar_events').update({ status: 'locked', title: props.owner_name }).eq('id', activeEvent.id); //
                                 eventDetailsModal.classList.add('hidden'); //
                             };
                             document.getElementById('deny-btn').onclick = async () => { //
+                                const denyBtn = document.getElementById('deny-btn');
+                                denyBtn.disabled = true;
+                                denyBtn.textContent = 'Denying...';
                                 await _supabase.from('calendar_events').delete().eq('id', activeEvent.id);
                                 eventDetailsModal.classList.add('hidden'); //
                             };
                         } else if (props.status === 'locked') { //
                             eventDetailsActions.innerHTML = `<button id="force-cancel-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Force Cancellation</button>`; //
                             document.getElementById('force-cancel-btn').onclick = async () => { //
+                                const forceCancelBtn = document.getElementById('force-cancel-btn');
+                                forceCancelBtn.disabled = true;
+                                forceCancelBtn.textContent = 'Cancelling...';
                                 await _supabase.from('calendar_events').update({ status: 'takeover', title: 'NEEDS TAKEOVER', original_owner_name: props.owner_name }).eq('id', activeEvent.id); //
                                 eventDetailsModal.classList.add('hidden'); //
                             };
                         } else if (props.status === 'takeover_pending') { //
                             eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-700 font-semibold">Takeover requested by: ${props.requested_by_name}</p><button id="approve-takeover-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve Takeover</button>`; //
                             document.getElementById('approve-takeover-btn').onclick = async () => { //
+                                const approveTakeoverBtn = document.getElementById('approve-takeover-btn');
+                                approveTakeoverBtn.disabled = true;
+                                approveTakeoverBtn.textContent = 'Approving Takeover...';
                                 await _supabase.from('calendar_events').update({ status: 'locked', owner_id: props.requested_by_id, owner_name: props.requested_by_name, title: props.requested_by_name }).eq('id', activeEvent.id); //
                                 eventDetailsModal.classList.add('hidden'); //
                             };
@@ -995,12 +1112,18 @@
                         if (isMine && props.status === 'locked') { //
                             eventDetailsActions.innerHTML = `<button id="cancel-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Cancel My Session</button>`; //
                             document.getElementById('cancel-session-btn').onclick = async () => { //
+                                const cancelSessionBtn = document.getElementById('cancel-session-btn');
+                                cancelSessionBtn.disabled = true;
+                                cancelSessionBtn.textContent = 'Cancelling...';
                                 await _supabase.from('calendar_events').update({ status: 'takeover', title: 'NEEDS TAKEOVER', original_owner_name: props.owner_name }).eq('id', activeEvent.id); //
                                 eventDetailsModal.classList.add('hidden'); //
                             };
                         } else if (!isMine && props.status === 'takeover') { //
                             eventDetailsActions.innerHTML = `<button id="claim-takeover-btn" class="clay-button clay-button-primary w-full p-4 text-xl">Claim This Session</button>`; //
                              document.getElementById('claim-takeover-btn').onclick = async () => { //
+                                const claimTakeoverBtn = document.getElementById('claim-takeover-btn');
+                                claimTakeoverBtn.disabled = true;
+                                claimTakeoverBtn.textContent = 'Claiming...';
                                 await _supabase.from('calendar_events').update({ status: 'takeover_pending', requested_by_id: profile.id, requested_by_name: profile.full_name, title: `Takeover Pending (${profile.full_name})` }).eq('id', activeEvent.id); //
                                 eventDetailsModal.classList.add('hidden'); //
                             };
@@ -1009,7 +1132,7 @@
                             eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`; //
                         }
                     }
-                    
+
                     eventDetailsModal.classList.remove('hidden'); //
                 }
             });
@@ -1018,13 +1141,17 @@
 
             bookingForm.addEventListener('submit', async (e) => { //
                 e.preventDefault(); //
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Requesting...';
+
                 const startTimeValue = startTimeInput.value; //
                 if(startTimeValue && currentSelectionInfo){ //
                     const [hours, minutes] = startTimeValue.split(':'); //
                     const startDateTime = new Date(currentSelectionInfo.date); //
                     startDateTime.setHours(hours, minutes, 0, 0); //
                     const endDateTime = new Date(startDateTime.getTime() + (3 * 60 * 60 * 1000)); //
-                    
+
                     const newEvent = {
                         title: `${profile.full_name} (Pending)`,
                         start_time: startDateTime.toISOString(),
@@ -1038,6 +1165,8 @@
                     if(error) showAlert('Error', 'Could not book session: ' + error.message);
                     else bookingModal.classList.add('hidden'); //
                 }
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Request Booking';
             });
             cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden')); //
             closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden')); //
@@ -1063,7 +1192,7 @@
         // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             modalContainer.innerHTML = Object.values(modalTemplates).join('');
-            
+
             _supabase.auth.onAuthStateChange((event, session) => {
                 checkUserSession();
             });
