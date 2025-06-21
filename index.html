@@ -97,58 +97,13 @@
         </div>
     </div>
     <!-- Add all other modals from your original HTML file here -->
-    <div id="log-session-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="booking-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="user-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="bonus-rule-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="delete-confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-    <div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"></div>
-
 
     <script type="module">
         const { createClient } = supabase;
         // --- Supabase Initialization ---
-        const SUPABASE_URL = 'https://lmzxjxumfqjrvcnsrfbr.supabase.co';
+        const SUPABASE_URL = 'https://lmzxjxumfqrjvcnsrfbr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtenhqeHVtZnFqcnZjbnNyZmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MDUzNDIsImV4cCI6MjA2NjA4MTM0Mn0.7vd1mZzXKYjf64b_lRmPUR0KM_4VdgJMxsDVrCEYbTw';
         const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        /*
-            ******************************************************************
-            *** ONE-TIME DATABASE SETUP (IMPORTANT!) ***
-            ******************************************************************
-            To make user signups work correctly, you need to run a SQL script
-            in your Supabase project ONE TIME. This automatically creates a user
-            profile when a new user signs up.
-
-            1. Go to your Supabase project dashboard.
-            2. Click on the "SQL Editor" icon in the left menu.
-            3. Click "+ New query".
-            4. Copy ALL the text below and paste it into the query window.
-            5. Click the "RUN" button.
-
-            --- COPY FROM HERE ---
-            -- Creates a function that inserts a new row into public.profiles
-            create or replace function public.handle_new_user()
-            returns trigger
-            language plpgsql
-            security definer set search_path = public
-            as $$
-            begin
-              insert into public.profiles (id, name, email, role, status)
-              values (new.id, new.raw_user_meta_data->>'name', new.email, 'seller', 'pending');
-              return new;
-            end;
-            $$;
-
-            -- Creates a trigger that fires after a new user is created in the auth system
-            drop trigger if exists on_auth_user_created on auth.users;
-            create trigger on_auth_user_created
-              after insert on auth.users
-              for each row execute procedure public.handle_new_user();
-            --- END COPY ---
-        */
-
 
         // --- TEMPLATES FOR EACH PAGE ---
         const pageTemplates = {
@@ -174,43 +129,7 @@
                     <div class="text-center mt-6"><p class="text-sm">Already have an account? <a href="#" id="show-login" class="font-semibold hover:underline" style="color: #831843;">Login</a></p></div>
                 </div>`,
             dashboard: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 id="dashboard-title" class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700"></h1><p id="dashboard-subtitle" class="text-gray-500 mt-2"></p></header><div id="dashboard-container"></div></div>`,
-            scheduler: `<div class="w-full max-w-7xl mx-auto"><header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Live Session Scheduler</h1><p class="text-gray-500 mt-2">Book your upcoming live sessions.</p></header><div class="clay-card p-2 sm:p-6 mb-8"><div id='calendar'></div></div></div>`,
-            userManagement: `
-                <div class="w-full max-w-4xl mx-auto">
-                    <header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">User Management</h1><p class="text-gray-500 mt-2">Approve new seller accounts and manage existing users.</p></header>
-                    <div id="user-list-container" class="clay-card overflow-hidden"></div>
-                </div>`,
-            bonusRules: `
-                <div class="w-full max-w-5xl mx-auto">
-                    <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-                        <div class="text-center sm:text-left">
-                           <h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Bonus Rules</h1>
-                           <p class="text-gray-500 mt-2">Create and manage performance-based bonus schemes.</p>
-                        </div>
-                        <button id="create-new-rule-btn" class="clay-button clay-button-primary w-full sm:w-auto px-6 py-4 text-lg">Create New Rule</button>
-                    </header>
-                    <div id="bonus-rules-list" class="space-y-4"></div>
-                </div>`,
-            userProfile: `
-                <div class="w-full max-w-2xl mx-auto">
-                    <header class="text-center mb-8"><h1 class="font-playfair text-4xl sm:text-5xl font-bold text-gray-700">Profile</h1><p class="text-gray-500 mt-2">Update your personal information and password.</p></header>
-                    <form id="profile-info-form" class="clay-card p-6 sm:p-8 space-y-8 mb-8">
-                         <fieldset><legend class="font-playfair text-2xl font-bold mb-4">Contact Information</legend>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div><label for="profile-gcash" class="block text-sm font-medium mb-2">GCash Number</label><input type="text" id="profile-gcash" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
-                                <div><label for="profile-contact" class="block text-sm font-medium mb-2">Contact Number</label><input type="text" id="profile-contact" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
-                                <div class="sm:col-span-2"><label for="profile-emergency" class="block text-sm font-medium mb-2">Emergency Contact</label><input type="text" id="profile-emergency" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none"></div>
-                            </div>
-                         </fieldset>
-                         <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Save Information</button></div>
-                    </form>
-                     <form id="password-change-form" class="clay-card p-6 sm:p-8 space-y-8">
-                         <fieldset><legend class="font-playfair text-2xl font-bold mb-4">Change Password</legend>
-                            <p class="text-sm text-gray-600">The app does not handle password changes directly. A password reset link will be sent to your email.</p>
-                         </fieldset>
-                         <div class="pt-2"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Send Password Reset Email</button></div>
-                    </form>
-                </div>`
+            // ... other templates will go here
         };
 
         // --- Global State & App Variables ---
@@ -242,37 +161,49 @@
 
         // --- Page Setup & Rendering ---
         function showPage(pageName) {
-            // Unsubscribe from all real-time channels before switching pages
             channels.forEach(channel => _supabase.removeChannel(channel));
             channels = [];
 
-            if (!pageTemplates[pageName]) return;
+            if (!pageTemplates[pageName]) {
+                 console.error(`Template for page "${pageName}" not found.`);
+                 return;
+            }
             appContainer.innerHTML = pageTemplates[pageName];
             state.currentPage = pageName;
             
             switch (pageName) {
                 case 'login': setupLoginPage(); break;
                 case 'signup': setupSignupPage(); break;
-                // ... other page setups would go here
+                case 'dashboard': setupDashboardPage(); break;
             }
             lucide.createIcons();
         }
 
+        function renderNav() {
+            const profileName = document.getElementById('profile-name');
+            const profileDropdown = document.getElementById('profile-dropdown');
+            
+            if (state.isLoggedIn && state.profile) {
+                mainHeader.classList.remove('hidden');
+                profileName.textContent = state.profile.name;
+            } else {
+                mainHeader.classList.add('hidden');
+            }
+        }
+        
         // --- Supabase Auth & Data Handling ---
         const checkUser = async () => {
-            const { data: { session }, error } = await _supabase.auth.getSession();
-            if (error) { console.error('Error getting session:', error); return; }
+            const { data: { session } } = await _supabase.auth.getSession();
 
             if (session && session.user) {
-                const { data: profile, error: profileError } = await _supabase
+                const { data: profile, error } = await _supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
                     .single();
 
-                if (profileError) {
-                    console.error('Error fetching profile:', profileError.message);
-                    handleLogout();
+                if (error) {
+                    showAlert('Error', 'Could not fetch user profile.', handleLogout);
                     return;
                 }
                 
@@ -280,9 +211,9 @@
                     state.currentUser = session.user;
                     state.profile = profile;
                     state.isLoggedIn = true;
-                    // renderNav(); // You would create this function
+                    renderNav();
                     if (state.currentPage === 'login' || state.currentPage === 'signup') {
-                        // showPage('dashboard'); // You would create this page
+                        showPage('dashboard');
                     }
                 } else if (profile) {
                     showAlert('Account Pending', 'Your account is still pending admin approval.', handleLogout);
@@ -295,20 +226,19 @@
         };
 
         _supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
                 checkUser();
             } else if (event === 'SIGNED_OUT') {
-                if (state.isLoggedIn) handleLogout();
+                handleLogout();
             }
         });
 
         async function handleLogout() {
-            const { error } = await _supabase.auth.signOut();
-            if (error) { showAlert('Logout Error', error.message); }
+            await _supabase.auth.signOut();
             state.isLoggedIn = false;
             state.currentUser = null;
             state.profile = null;
-            // renderNav();
+            renderNav();
             showPage('login');
         }
         
@@ -321,6 +251,7 @@
                 
                 const { error } = await _supabase.auth.signInWithPassword({ email, password });
                 if (error) showAlert('Login Failed', error.message);
+                // onAuthStateChange will handle navigation on success
             });
             document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
         }
@@ -332,8 +263,6 @@
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
 
-                // The trigger will automatically create the profile.
-                // We just need to pass the name in the user metadata.
                 const { data, error } = await _supabase.auth.signUp({
                     email,
                     password,
@@ -352,11 +281,22 @@
                     });
                 }
             });
-            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showPage('signup'); });
+            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showPage('login'); });
+        }
+        
+        function setupDashboardPage() {
+            const dashboardTitle = document.getElementById('dashboard-title');
+            const dashboardSubtitle = document.getElementById('dashboard-subtitle');
+            
+            if (state.profile) {
+                 dashboardTitle.textContent = "Dashboard";
+                 dashboardSubtitle.textContent = `Welcome back, ${state.profile.name}!`;
+            }
         }
         
         // --- App Initialization ---
-        showPage('login');
+        checkUser(); // Check user status on initial load
+        showPage('login'); // Start on the login page by default
 
     </script>
 </body>
