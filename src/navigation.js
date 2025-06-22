@@ -7,9 +7,10 @@ export function renderNav() {
     const navLinksContainer = document.getElementById('nav-links');
     const profileDropdown = document.getElementById('profile-dropdown');
     const profileName = document.getElementById('profile-name');
+    const profileButton = document.getElementById('profile-button'); // Also need this reference for its listener
 
-    if (!mainHeader || !navLinksContainer || !profileDropdown || !profileName) {
-        console.error("Navigation elements not found!");
+    if (!mainHeader || !navLinksContainer || !profileDropdown || !profileName || !profileButton) {
+        console.error("Navigation elements not found for rendering.");
         return;
     }
 
@@ -41,12 +42,27 @@ export function renderNav() {
         `;
         profileDropdown.innerHTML = dropdownLinks;
 
-        // Attach logout listener
+        // Re-attach logout listener if it exists
         const logoutButton = profileDropdown.querySelector('#logout-button');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                handleLogout(false);
+        if (logoutButton && !logoutButton._hasLogoutListener) {
+            const logoutHandler = (e) => { e.preventDefault(); handleLogout(false); };
+            logoutButton.addEventListener('click', logoutHandler);
+            logoutButton._hasLogoutListener = logoutHandler; // Store reference
+        }
+
+        // Ensure profile button toggle listener is attached only once
+        if (!profileButton._hasProfileToggleListener) {
+            const toggleHandler = () => {
+                profileDropdown.classList.toggle('hidden');
+            };
+            profileButton.addEventListener('click', toggleHandler);
+            profileButton._hasProfileToggleListener = toggleHandler;
+
+            // Also manage click outside to close dropdown
+            document.addEventListener('click', (e) => {
+                if (!profileButton.contains(e.target) && !profileDropdown.contains(e.target) && !profileDropdown.classList.contains('hidden')) {
+                    profileDropdown.classList.add('hidden');
+                }
             });
         }
 
@@ -54,5 +70,11 @@ export function renderNav() {
         lucide.createIcons();
     } else {
         mainHeader.classList.add('hidden');
+        // Clean up listeners if logging out, to prevent memory leaks, especially on single-page apps
+        // if (profileButton && profileButton._hasProfileToggleListener) {
+        //     profileButton.removeEventListener('click', profileButton._hasProfileToggleListener);
+        //     delete profileButton._hasProfileToggleListener;
+        // }
+        // (Removing the document-wide click listener is harder and often unnecessary on full page navigations)
     }
 }
