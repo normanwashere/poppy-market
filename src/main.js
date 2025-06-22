@@ -2,15 +2,15 @@
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert, setLoading } from './helpers.js';
 import { pageTemplates, modalTemplates } from './templates.js';
-import { renderNav } from './navigation.js'; // This module is next
-import { setupLoginPage, setupSignupPage } from './auth.js'; // This module is next
-import { initializeAdminDashboard, initializeSellerDashboard } from './dashboard.js'; // This module is next
-import { initializeScheduler } from './scheduler.js'; // This module is next
-import { setupUserManagementPage } from './userManagement.js'; // This module is next
-import { setupBonusRulesPage, setupRuleSetManagementPage, showRuleSetDetailsModal } from './rules.js'; // This module is next
-import { setupBonusReviewPage, showReviewModal } from './bonusReview.js'; // This module is next
-import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } from './settings.js'; // This module is next
-import { setupUserProfilePage } from './userProfile.js'; // This module is next
+import { renderNav } from './navigation.js';
+import { setupLoginPage, setupSignupPage } from './auth.js';
+import { setupDashboardPage, initializeAdminDashboard, initializeSellerDashboard } from './dashboard.js'; // MODIFIED: Added setupDashboardPage
+import { initializeScheduler } from './scheduler.js';
+import { setupUserManagementPage } from './userManagement.js';
+import { setupBonusRulesPage, setupRuleSetManagementPage, showRuleSetDetailsModal } from './rules.js';
+import { setupBonusReviewPage, showReviewModal } from './bonusReview.js';
+import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } from './settings.js';
+import { setupUserProfilePage } from './userProfile.js';
 
 
 // Global DOM Elements (access from main.js as they are fixed on index.html)
