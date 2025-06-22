@@ -431,10 +431,14 @@ export async function initializeScheduler() {
             cancelFinalizeSessionBtn._hasCancelFinalizeListener = true;
         }
 
+// src/scheduler.js (continue from where the eventChannel block was deleted)
+
         // Real-time listener for calendar events
+        // Manually type or copy-paste line by line
         const eventChannel = _supabase.channel('public:calendar_events')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
                 if (payload.eventType === 'INSERT') {
+                    // Make SURE no 'let' or 'const' is here!
                     calendarInstance.addEvent(formatEvent(payload.new));
                 } else if (payload.eventType === 'UPDATE') {
                     let existingEvent = calendarInstance.getEventById(payload.new.id);
@@ -447,4 +451,4 @@ export async function initializeScheduler() {
             })
             .subscribe();
         channels.push(eventChannel);
-}
+    } // This closing brace is for export async function initializeScheduler() { ... }
