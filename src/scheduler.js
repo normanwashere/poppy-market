@@ -15,7 +15,9 @@ export async function initializeScheduler() {
         calendarInstance = null;
     }
 
+    // Get references to all modal elements at the top
     const bookingModal = document.getElementById('booking-modal');
+    const bookingDateDisplay = document.getElementById('booking-date-display'); // Get the new date display element
     const eventDetailsModal = document.getElementById('event-details-modal');
     const bookingForm = document.getElementById('booking-form');
     const eventTitleInput = document.getElementById('event-title');
@@ -73,15 +75,16 @@ export async function initializeScheduler() {
         },
         firstDay: 3,
         dateClick: function (info) {
-            // ... (rest of dateClick logic remains the same)
             console.log("--- Calendar Click Log ---");
             console.log("1. dateClick event fired for date:", info.date);
+
             console.log("2. Checking user role. Role is:", state.profile.role);
             if (state.profile.role !== 'seller') {
                 console.log("   -> FAILED: User is not a seller. Aborting.");
                 showAlert('Permission Denied', 'Only sellers can book sessions.');
                 return;
             }
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             console.log("3. Checking if date is in the past. Clicked date:", info.date, "Today:", today);
@@ -90,6 +93,7 @@ export async function initializeScheduler() {
                 showAlert('Invalid Date', 'You cannot book a session in the past.');
                 return;
             }
+
             console.log("4. Checking for existing events on this day for user ID:", state.profile.id);
             const eventsOnDay = calendarInstance.getEvents().filter(event => {
                 return event.start.toDateString() === info.date.toDateString() &&
@@ -102,7 +106,20 @@ export async function initializeScheduler() {
                 showAlert('Already Booked', 'You already have a session on this day. Please choose another day or manage your existing booking.');
                 return;
             }
+
             console.log("5. SUCCESS: All checks passed. Showing booking modal.");
+            
+            // --- NEW LOGIC ADDED HERE ---
+            const selectedDate = info.date;
+            const formattedDate = selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            // This populates the new element we added to the HTML template
+            bookingDateDisplay.textContent = `Booking for: ${formattedDate}`;
+            
             bookingForm.reset();
             currentSelectionInfo = info;
             eventTitleInput.value = profile.full_name;
@@ -111,13 +128,13 @@ export async function initializeScheduler() {
         },
         events: initialEvents,
         eventClick: async (info) => {
-            // ... (your existing eventClick logic)
+            // ... (your existing eventClick logic remains here)
         },
     });
 
     calendarInstance.render();
     
-    // ... (Your existing event listener setup for booking modals, etc.)
+    // ... (Your existing event listener setup for booking modals, etc. remains here)
 
     const eventChannel = _supabase.channel('public:calendar_events')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
@@ -133,7 +150,5 @@ export async function initializeScheduler() {
             }
         })
         .subscribe();
-    
-    // FIX: Push to the 'channels' array directly
     channels.push(eventChannel);
 }
