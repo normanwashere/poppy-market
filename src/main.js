@@ -12,11 +12,9 @@ import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } fr
 import { setupUserProfilePage } from './userProfile.js';
 import { setupDashboardPage } from './dashboard.js';
 
-// Global DOM Elements
 const appContainer = document.getElementById('app-container');
 const modalContainer = document.getElementById('modal-container');
 
-// Expose state and core functions globally for convenience
 window.state = state;
 window.showAlert = showAlert;
 window.setLoading = setLoading;
@@ -43,7 +41,7 @@ async function fetchGlobalSettings() {
 
 export function showPage(pageName) {
     if (channels.length > 0) {
-        channels.forEach(channel => _supabase.removeChannel(channel));
+        _supabase.removeChannel(...channels);
         channels.length = 0;
     }
 
@@ -78,12 +76,7 @@ async function checkUserSession() {
     setLoading(true);
     await fetchGlobalSettings();
 
-    const { data: { session }, error } = await _supabase.auth.getSession();
-
-    if (error) {
-        showAlert('Session Error', 'Could not retrieve session.', () => handleLogout(true));
-        return;
-    }
+    const { data: { session } } = await _supabase.auth.getSession();
 
     if (session) {
         state.currentUser = session.user;
@@ -96,7 +89,7 @@ async function checkUserSession() {
                 state.profile = profile;
                 state.isLoggedIn = true;
                 renderNav();
-                showPage(state.currentPage === 'login' ? 'dashboard' : state.currentPage);
+                showPage(state.currentPage === 'login' || !state.currentPage ? 'dashboard' : state.currentPage);
             } else {
                 showAlert('Account Pending', 'Your account is still awaiting admin approval.', () => handleLogout(true));
             }
@@ -116,7 +109,7 @@ export async function handleLogout(isInitial = false) {
     state.currentPage = 'login';
 
     if (channels.length > 0) {
-        channels.forEach(channel => _supabase.removeChannel(channel));
+        _supabase.removeChannel(...channels);
         channels.length = 0;
     }
 
@@ -128,14 +121,16 @@ export async function handleLogout(isInitial = false) {
 document.addEventListener('DOMContentLoaded', () => {
     modalContainer.innerHTML = Object.values(modalTemplates).join('');
 
-    // --- FIX: SIMPLIFIED AND MORE STABLE STARTUP LOGIC ---
     _supabase.auth.onAuthStateChange((event, session) => {
+        console.log("Auth event:", event);
         if (event === 'INITIAL_SESSION') {
             checkUserSession();
         } else if (event === 'SIGNED_IN') {
             checkUserSession();
         } else if (event === 'SIGNED_OUT') {
             handleLogout(true);
+        } else if (event === 'TOKEN_REFRESHED') {
+            // Session has been refreshed, no action needed, Supabase client handles it.
         }
     });
 
