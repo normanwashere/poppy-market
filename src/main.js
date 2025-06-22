@@ -4,14 +4,15 @@ import { showAlert, setLoading } from './helpers.js';
 import { pageTemplates, modalTemplates } from './templates.js';
 import { renderNav } from './navigation.js';
 import { setupLoginPage, setupSignupPage } from './auth.js';
-import { setupDashboardPage, initializeAdminDashboard, initializeSellerDashboard } from './dashboard.js'; // MODIFIED: Added setupDashboardPage
 import { initializeScheduler } from './scheduler.js';
-import { setupUserManagementPage } from './userManagement.js';
+import { setupUserManagementPage, showUserDetailsModal } from './userManagement.js';
 import { setupBonusRulesPage, setupRuleSetManagementPage, showRuleSetDetailsModal } from './rules.js';
 import { setupBonusReviewPage, showReviewModal } from './bonusReview.js';
 import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } from './settings.js';
 import { setupUserProfilePage } from './userProfile.js';
 
+// Explicitly import setupDashboardPage from dashboard.js
+import { setupDashboardPage } from './dashboard.js'; // This line is crucial for the error fix
 
 // Global DOM Elements (access from main.js as they are fixed on index.html)
 const loader = document.getElementById('loader');
@@ -25,11 +26,10 @@ const profileName = document.getElementById('profile-name');
 
 // Expose state and core functions globally for direct calls from other modules if needed,
 // though passing them as arguments is often cleaner for specific functions.
-window.state = state;
-window.showAlert = showAlert;
-window.setLoading = setLoading;
-window.lucide = lucide; // Assuming Lucide is loaded globally by the script tag in index.html
-
+window.state = state; // Expose global state
+window.showAlert = showAlert; // Expose showAlert global
+window.setLoading = setLoading; // Expose setLoading global
+window.lucide = lucide; // Expose Lucide global function (assuming it's loaded from index.html)
 
 // Helper to fetch global settings (still resides here as it's a core global operation for app state)
 async function fetchGlobalSettings() {
@@ -65,7 +65,6 @@ async function fetchGlobalSettings() {
     console.log('Global Settings Loaded:', state.globalSettings);
 }
 
-
 // Central function to show pages
 export function showPage(pageName) {
     // Unsubscribe from all existing channels before showing a new page
@@ -93,10 +92,10 @@ export function showPage(pageName) {
 
     // Call specific setup function for the page
     switch (pageName) {
-        case 'login': setupLoginPage(); break; // No explicit args needed, they import global state
+        case 'login': setupLoginPage(); break;
         case 'signup': setupSignupPage(); break;
-        case 'dashboard': setupDashboardPage(); break;
-        case 'scheduler': setupSchedulerPage(); break;
+        case 'dashboard': setupDashboardPage(); break; // Correctly imported from dashboard.js
+        case 'scheduler': initializeScheduler(); break; // Ensure correct function name
         case 'userManagement': setupUserManagementPage(); break;
         case 'bonusRules': setupBonusRulesPage(); break;
         case 'bonusReview': setupBonusReviewPage(); break;
@@ -115,7 +114,6 @@ async function checkUserSession() {
 
     const { data: { session }, error } = await _supabase.auth.getSession(); // Checks for an active user session
     console.log("getSession completed, session:", session, "error:", error);
-
 
     if (error) {
         console.error("Error getting session:", error.message);
@@ -197,15 +195,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners for header navigation
     const profileButton = document.getElementById('profile-button');
     const profileDropdown = document.getElementById('profile-dropdown');
-    if (profileButton && profileDropdown) { // Add null checks
-        profileButton.addEventListener('click', () => {
-            profileDropdown.classList.toggle('hidden');
-        });
-        document.addEventListener('click', (e) => {
-            if (!profileButton.contains(e.target) && !profileDropdown.contains(e.target)) {
-                profileDropdown.classList.add('hidden');
-            }
-        });
+    if (profileButton && profileDropdown) {
+        if (!profileButton._hasProfileToggleListener) { // Add flag to prevent duplicate listeners
+            const toggleHandler = () => {
+                profileDropdown.classList.toggle('hidden');
+            };
+            profileButton.addEventListener('click', toggleHandler);
+            profileButton._hasProfileToggleListener = toggleHandler;
+
+            document.addEventListener('click', (e) => {
+                if (!profileButton.contains(e.target) && !profileDropdown.contains(e.target) && !profileDropdown.classList.contains('hidden')) {
+                    profileDropdown.classList.add('hidden');
+                }
+            });
+        }
     }
 
     // Delegated click handler for data-page navigation (app-wide)
@@ -220,7 +223,4 @@ document.addEventListener('DOMContentLoaded', () => {
             showPage(pageButton.getAttribute('data-page'));
         }
     });
-
-    // Initial check (DOMContentLoaded will trigger onAuthStateChange, which calls checkUserSession)
-    // No direct call to checkUserSession needed here, it's handled by onAuthStateChange.
 });
