@@ -297,8 +297,7 @@ export async function initializeScheduler() {
 
         calendarInstance.render();
 
-        // MODIFIED: Merged event listener setup directly into initializeScheduler
-        // Previously this was inside setupSchedulerEventListeners()
+        // All event listener setup, previously in setupSchedulerEventListeners(), now inline.
         if (bookingForm && !bookingForm._hasBookingFormListener) {
             const handleBookingSubmit = async (e) => {
                 e.preventDefault();
@@ -310,9 +309,9 @@ export async function initializeScheduler() {
                 const defaultSessionDurationHours = state.globalSettings.session_duration_hours || 3;
 
                 if (startTimeValue && currentSelectionInfo) {
-                    const [hours, minutes] = startTimeValue.split(':');
+                    const [hours, minutes] = startTimeInput.value.split(':'); // MODIFIED: Use startTimeInput.value for splitting
                     const startDateTime = new Date(currentSelectionInfo.date);
-                    startDateTime.setHours(hours, minutes, 0, 0);
+                    startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0); // MODIFIED: Parse ints for hours/minutes
                     const endDateTime = new Date(startDateTime.getTime() + (defaultSessionDurationHours * 60 * 60 * 1000));
 
                     const overlappingEvents = calendarInstance.getEvents().filter(event => {
@@ -421,5 +420,5 @@ export async function initializeScheduler() {
                 }
             })
             .subscribe();
-        channels.push(eventChannel);
-    }
+        state.channels.push(eventChannel);
+}
