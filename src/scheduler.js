@@ -294,7 +294,8 @@ export async function initializeScheduler() {
                         } catch (err) {
                             showAlert('Error', 'Failed to end session: ' + err.message);
                         } finally {
-                            btn.disabled = false; btn.textContent = 'End Session'; // Restore state
+                            btn.disabled = false;
+                            btn.textContent = 'Submit Sales Data';
                         }
                     };
                 } else if (!isMine && props.status === 'takeover') {
@@ -306,7 +307,7 @@ export async function initializeScheduler() {
                         if (updateError) showAlert('Error', 'Failed to claim session: ' + updateError.message);
                         else showAlert('Success', 'Takeover request sent for approval.');
                         eventDetailsModal.classList.add('hidden');
-                        btn.disabled = false; btn.textContent = 'Claim This Session'; // Restore state
+                        btn.disabled = false; btn.textContent = 'Claim This Session';
                     };
                 }
                 else {
@@ -446,4 +447,4 @@ export async function initializeScheduler() {
             })
             .subscribe();
         channels.push(eventChannel);
-
+} // Close the initializeScheduler function here, this should be the very last line in the file.
