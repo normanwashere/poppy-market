@@ -45,7 +45,7 @@ export async function initializeScheduler() {
         return classMap[status] || 'event-pending';
     };
 
-    -- Helper to format events from database for FullCalendar
+    // Helper to format events from database for FullCalendar
     const formatEvent = (dbEvent) => ({
         id: dbEvent.id,
         title: dbEvent.title,
@@ -70,7 +70,6 @@ export async function initializeScheduler() {
     const initialEvents = data.map(formatEvent);
 
     // Initialize FullCalendar instance
-    // THIS IS THE LINE THAT WAS CAUSING THE ERROR IF 'let' or 'const' was accidentally re-added
     calendarInstance = new FullCalendar.Calendar(calendarEl, {
         initialView: window.innerWidth < 768 ? 'dayGridWeek' : 'dayGridMonth',
         headerToolbar: {
@@ -82,7 +81,7 @@ export async function initializeScheduler() {
 
         // Handler for clicking on a date
         dateClick: function (info) {
-            if (state.profile.role !== 'seller') {
+            if (state.profile.role !== 'seller') { // Access state.profile directly
                 showAlert('Permission Denied', 'Only sellers can book sessions.');
                 return;
             }
@@ -107,7 +106,7 @@ export async function initializeScheduler() {
 
             bookingForm.reset();
             currentSelectionInfo = info; // Store selected date info
-            eventTitleInput.value = state.profile.full_name; // Pre-fill with seller's name
+            eventTitleInput.value = profile.full_name; // Pre-fill with seller's name
             bookingDurationDisplay.textContent = state.globalSettings.session_duration_hours || 3; // Display dynamic duration
             bookingModal.classList.remove('hidden'); // Show booking modal
         },
@@ -174,7 +173,7 @@ export async function initializeScheduler() {
                             showAlert('Success', `Session for ${props.owner_name} is now LIVE!`);
                             eventDetailsModal.classList.add('hidden');
                         } catch (err) {
-                            showAlert('Error', 'Failed to force go live: ' + err.message);
+                            showAlert('Error', 'Failed to go live: ' + err.message);
                         } finally {
                             btn.disabled = false; btn.textContent = 'Admin Force Go Live'; // Restore state
                         }
@@ -210,7 +209,7 @@ export async function initializeScheduler() {
                         btn.disabled = false; btn.textContent = 'Approve Takeover'; // Restore state
                     };
                 } else {
-                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No admin actions for this state.</p>`;
+                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for this state.</p>`;
                 }
             } else if (state.profile.role === 'seller') {
                 if (isMine && props.status === 'locked') {
@@ -323,129 +322,131 @@ export async function initializeScheduler() {
 
         calendarInstance.render();
 
-        // Event listener setup for booking form (needs to be inside initializeScheduler)
-        // Check for _hasBookingFormListener flag to prevent duplicate listeners
-        if (bookingForm && !bookingForm._hasBookingFormListener) {
-            const handleBookingSubmit = async (e) => {
-                e.preventDefault();
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Requesting...';
+        // All event listener setup, previously in setupSchedulerEventListeners()
+        // Wrapped in an IIFE to ensure proper block scope and execution
+        (() => { // MODIFIED: Start of IIFE
+            if (bookingForm && !bookingForm._hasBookingFormListener) {
+                const handleBookingSubmit = async (e) => {
+                    e.preventDefault();
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Requesting...';
 
-                const startTimeValue = startTimeInput.value;
-                const defaultSessionDurationHours = state.globalSettings.session_duration_hours || 3;
+                    const startTimeValue = startTimeInput.value;
+                    const defaultSessionDurationHours = state.globalSettings.session_duration_hours || 3;
 
-                if (startTimeValue && currentSelectionInfo) {
-                    const [hours, minutes] = startTimeInput.value.split(':');
-                    const startDateTime = new Date(currentSelectionInfo.date);
-                    startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                    const endDateTime = new Date(startDateTime.getTime() + (defaultSessionDurationHours * 60 * 60 * 1000));
+                    if (startTimeValue && currentSelectionInfo) {
+                        const [hours, minutes] = startTimeInput.value.split(':');
+                        const startDateTime = new Date(currentSelectionInfo.date);
+                        startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                        const endDateTime = new Date(startDateTime.getTime() + (defaultSessionDurationHours * 60 * 60 * 1000));
 
-                    const overlappingEvents = calendarInstance.getEvents().filter(event => {
-                        const eventStart = event.start.getTime();
-                        const eventEnd = event.end.getTime();
-                        return event.extendedProps.owner_id === state.profile.id && event.extendedProps.status !== 'ended' &&
-                            ((startDateTime.getTime() < eventEnd && endDateTime.getTime() > eventStart));
-                    });
+                        const overlappingEvents = calendarInstance.getEvents().filter(event => {
+                            const eventStart = event.start.getTime();
+                            const eventEnd = event.end.getTime();
+                            return event.extendedProps.owner_id === state.profile.id && event.extendedProps.status !== 'ended' &&
+                                ((startDateTime.getTime() < eventEnd && endDateTime.getTime() > eventStart));
+                        });
 
-                    if (overlappingEvents.length > 0) {
-                        showAlert('Overlap Detected', 'This booking overlaps with an existing session. Please choose a different time.');
+                        if (overlappingEvents.length > 0) {
+                            showAlert('Overlap Detected', 'This booking overlaps with an existing session. Please choose a different time.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Request Booking';
+                            return;
+                        }
+
+                        const newEvent = {
+                            title: `${state.profile.full_name} (Pending)`,
+                            start_time: startDateTime.toISOString(),
+                            end_time: endDateTime.toISOString(),
+                            status: 'pending',
+                            owner_id: state.profile.id,
+                            owner_name: state.profile.full_name,
+                        };
+
+                        const { error } = await _supabase.from('calendar_events').insert(newEvent);
+                        if (error) showAlert('Error', 'Could not book session: ' + error.message);
+                        else {
+                            bookingModal.classList.add('hidden');
+                            showAlert('Success', 'Booking request sent for approval!');
+                        }
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Request Booking';
+                };
+                bookingForm.addEventListener('submit', handleBookingSubmit);
+                bookingForm._hasBookingFormListener = handleBookingSubmit; // Set flag
+            }
+
+            if (cancelBookingBtn && !cancelBookingBtn._hasCancelBookingListener) {
+                cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden'));
+                cancelBookingBtn._hasCancelBookingListener = true;
+            }
+
+            if (closeDetailsBtn && !closeDetailsBtn._hasCloseDetailsListener) {
+                closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden'));
+                closeDetailsBtn._hasCloseDetailsListener = true;
+            }
+
+            if (finalizeSessionForm && !finalizeSessionForm._hasFinalizeSessionListener) {
+                const handleFinalizeSubmit = async (e) => {
+                    e.preventDefault();
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+
+                    const branded = parseInt(document.getElementById('finalize-branded-items').value) || 0;
+                    const freeSize = parseInt(document.getElementById('finalize-free-size-items').value) || 0;
+                    const totalRevenue = parseFloat(document.getElementById('finalize-total-revenue').value) || 0.00;
+                    const sessionNotes = document.getElementById('finalize-session-notes').value.trim();
+
+                    try {
+                        const { error } = await _supabase.rpc('finalize_logged_session', {
+                            p_live_session_id: state.activeLiveSession.id,
+                            p_branded_items_sold: branded,
+                            p_free_size_items_sold: freeSize,
+                            p_total_revenue: totalRevenue,
+                            p_session_notes: sessionNotes || null,
+                            p_seller_id: state.profile.id
+                        });
+                        if (error) throw error;
+                        showAlert('Success', 'Sales data submitted successfully!');
+                        finalizeSessionModal.classList.add('hidden');
+                        state.activeLiveSession = null;
+                    } catch (err) {
+                        showAlert('Error', 'Failed to submit sales data: ' + err.message);
+                    } finally {
                         submitBtn.disabled = false;
-                        submitBtn.textContent = 'Request Booking';
-                        return;
+                        submitBtn.textContent = 'Submit Sales Data';
                     }
+                };
+                finalizeSessionForm.addEventListener('submit', handleFinalizeSubmit);
+                finalizeSessionForm._hasFinalizeSessionListener = handleFinalizeSubmit;
+            }
 
-                    const newEvent = {
-                        title: `${state.profile.full_name} (Pending)`,
-                        start_time: startDateTime.toISOString(),
-                        end_time: endDateTime.toISOString(),
-                        status: 'pending',
-                        owner_id: state.profile.id,
-                        owner_name: state.profile.full_name,
-                    };
-
-                    const { error } = await _supabase.from('calendar_events').insert(newEvent);
-                    if (error) showAlert('Error', 'Could not book session: ' + error.message);
-                    else {
-                        bookingModal.classList.add('hidden');
-                        showAlert('Success', 'Booking request sent for approval!');
-                    }
-                }
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Request Booking';
-            };
-            bookingForm.addEventListener('submit', handleBookingSubmit);
-            bookingForm._hasBookingFormListener = handleBookingSubmit; // Set flag
-        }
-
-        if (cancelBookingBtn && !cancelBookingBtn._hasCancelBookingListener) {
-            cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden'));
-            cancelBookingBtn._hasCancelBookingListener = true;
-        }
-
-        if (closeDetailsBtn && !closeDetailsBtn._hasCloseDetailsListener) {
-            closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden'));
-            closeDetailsBtn._hasCloseDetailsListener = true;
-        }
-
-        if (finalizeSessionForm && !finalizeSessionForm._hasFinalizeSessionListener) {
-            const handleFinalizeSubmit = async (e) => {
-                e.preventDefault();
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
-
-                const branded = parseInt(document.getElementById('finalize-branded-items').value) || 0;
-                const freeSize = parseInt(document.getElementById('finalize-free-size-items').value) || 0;
-                const totalRevenue = parseFloat(document.getElementById('finalize-total-revenue').value) || 0.00;
-                const sessionNotes = document.getElementById('finalize-session-notes').value.trim();
-
-                try {
-                    const { error } = await _supabase.rpc('finalize_logged_session', {
-                        p_live_session_id: state.activeLiveSession.id,
-                        p_branded_items_sold: branded,
-                        p_free_size_items_sold: freeSize,
-                        p_total_revenue: totalRevenue,
-                        p_session_notes: sessionNotes || null,
-                        p_seller_id: state.profile.id
-                    });
-                    if (error) throw error;
-                    showAlert('Success', 'Sales data submitted successfully!');
+            if (cancelFinalizeSessionBtn && !cancelFinalizeSessionBtn._hasCancelFinalizeListener) {
+                cancelFinalizeSessionBtn.addEventListener('click', () => {
                     finalizeSessionModal.classList.add('hidden');
                     state.activeLiveSession = null;
-                } catch (err) {
-                    showAlert('Error', 'Failed to submit sales data: ' + err.message);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Sales Data';
-                }
-            };
-            finalizeSessionForm.addEventListener('submit', handleFinalizeSubmit);
-            finalizeSessionForm._hasFinalizeSessionListener = handleFinalizeSubmit;
-        }
+                });
+                cancelFinalizeSessionBtn._hasCancelFinalizeListener = true;
+            }
 
-        if (cancelFinalizeSessionBtn && !cancelFinalizeSessionBtn._hasCancelFinalizeListener) {
-            cancelFinalizeSessionBtn.addEventListener('click', () => {
-                finalizeSessionModal.classList.add('hidden');
-                state.activeLiveSession = null;
-            });
-            cancelFinalizeSessionBtn._hasCancelFinalizeListener = true;
-        }
-
-        // Real-time listener for calendar events
-        const eventChannel = _supabase.channel('public:calendar_events')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
-                if (payload.eventType === 'INSERT') {
-                    calendarInstance.addEvent(formatEvent(payload.new));
-                } else if (payload.eventType === 'UPDATE') {
-                    let existingEvent = calendarInstance.getEventById(payload.new.id);
-                    if (existingEvent) existingEvent.remove();
-                    calendarInstance.addEvent(formatEvent(payload.new));
-                } else if (payload.eventType === 'DELETE') {
-                    let existingEvent = calendarInstance.getEventById(payload.old.id);
-                    if (existingEvent) existingEvent.remove();
-                }
-            })
-            .subscribe();
-        state.channels.push(eventChannel);
+            // Real-time listener for calendar events
+            const eventChannel = _supabase.channel('public:calendar_events')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
+                    if (payload.eventType === 'INSERT') {
+                        calendarInstance.addEvent(formatEvent(payload.new));
+                    } else if (payload.eventType === 'UPDATE') {
+                        let existingEvent = calendarInstance.getEventById(payload.new.id);
+                        if (existingEvent) existingEvent.remove();
+                        calendarInstance.addEvent(formatEvent(payload.new));
+                    } else if (payload.eventType === 'DELETE') {
+                        let existingEvent = calendarInstance.getEventById(payload.old.id);
+                        if (existingEvent) existingEvent.remove();
+                    }
+                })
+                .subscribe();
+            state.channels.push(eventChannel);
+        })(); // MODIFIED: End of IIFE and immediate invocation
 }
