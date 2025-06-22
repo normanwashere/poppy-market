@@ -15,7 +15,7 @@ export const showAlert = (title, message, onOk) => {
 export const setLoading = (isLoading) => {
     const loader = document.getElementById('loader');
     const appContainer = document.getElementById('app-container');
-    if (!loader || !appContainer) return; // Ensure elements exist
+    if (!loader || !appContainer) return;
     if (isLoading) {
         loader.classList.remove('hidden');
         appContainer.classList.add('hidden');
