@@ -17,7 +17,7 @@ export const modalTemplates = {
     booking: `<div id="booking-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-lg p-6 sm:p-8"><h2 class="font-playfair text-3xl font-bold text-gray-700 mb-4">Book Session</h2><form id="booking-form" class="space-y-6"><div><label for="event-title" class="block text-sm font-medium mb-2">Your Name</label><input type="text" id="event-title" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required readonly></div><div><label for="start-time" class="block text-sm font-medium mb-2">Session Start Time</label><input type="time" id="start-time" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><p class="text-center text-sm font-semibold h-4 text-gray-600">Session will be booked for <span id="booking-duration-display">3</span> hours.</p><div class="pt-4 flex flex-col sm:flex-row gap-4"><button type="submit" id="book-session-btn" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Request Booking</button><button type="button" id="cancel-booking-btn" class="clay-button w-full p-4 text-xl text-gray-700">Cancel</button></div></form></div></div>`,
     eventDetails: `<div id="event-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-lg p-6 sm:p-8"><h2 id="event-details-title" class="font-playfair text-3xl font-bold text-gray-700 mb-2"></h2><p id="event-details-time" class="text-gray-600 mb-1"></p><p id="event-details-status" class="text-sm font-semibold mb-6"></p><div id="event-details-actions" class="pt-4 flex flex-col sm:flex-row gap-4"></div><button type="button" id="close-details-btn" class="clay-button w-full p-4 text-xl text-gray-700 mt-4">Close</button></div></div>`,
     userDetails: `<div id="user-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-lg p-6 sm:p-8"><h2 id="user-details-name" class="font-playfair text-3xl font-bold text-gray-700 mb-6"></h2><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-500">GCash Number</label><p id="user-details-gcash" class="clay-inset w-full p-4 text-lg"></p></div><div><label class="block text-sm font-medium text-gray-500">Contact Number</label><p id="user-details-contact" class="clay-inset w-full p-4 text-lg"></p></div><div><label class="block text-sm font-medium text-gray-500">Emergency Contact</label><p id="user-details-emergency" class="clay-inset w-full p-4 text-lg"></p></div></div><button type="button" id="close-user-details-btn" class="clay-button w-full p-4 text-xl text-gray-700 mt-8">Close</button></div></div>`,
-    createBonusRule: `<div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-3xl p-6 sm:p-8 flex flex-col max-h-[95vh]"><h2 class="font-playfair text-3xl font-bold text-gray-700 mb-6 flex-shrink-0">Create New Bonus Rule</h2><form id="bonus-rule-form" class="space-y-6 overflow-y-auto pr-2"><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Basic Information</h3><div class="space-y-4"><div><label for="rule-name" class="block text-sm font-medium mb-1">Rule Name</label><input type="text" id="rule-name" placeholder="e.g., Monthly Excellence Bonus" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-description" class="block text-sm font-medium mb-1">Description</textarea><textarea id="rule-description" placeholder="Brief description of the bonus requirements" rows="3" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></textarea></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Active Period</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="effective-start-date" class="block text-sm font-medium mb-1">Effective Start Date</label><input type="date" id="effective-start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="effective-end-date" class="block text-sm font-medium mb-1">Effective End Date</label><input type="date" id="effective-end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Target Requirements (All must be met)</h3><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label for="rule-live-hours" class="block text-sm font-medium mb-1">Live Hours Target</label><input type="number" id="rule-live-hours" placeholder="e.g., 40" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-branded-items" class="block text-sm font-medium mb-1">Branded Items Target</label><input type="number" id="rule-branded-items" placeholder="e.g., 60" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-free-size" class="block text-sm font-medium mb-1">Free Size Target</label><input type="number" id="rule-free-size" placeholder="e.g., 100" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div></div></div><div class="clay-card p-6"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="rule-time-frame" class="block text-sm font-medium mb-1">Time Frame</label><select id="rule-time-frame" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="one-time">One-Time</option></select></div><div><label for="rule-bonus-amount" class="block text-sm font-medium mb-1">Bonus Amount (₱)</label><input type="number" step="0.01" id="rule-bonus-amount" placeholder="0.00" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-reset-day" class="block text-sm font-medium mb-1">Reset Day (for weekly/monthly)</label><input type="text" id="rule-reset-day" placeholder="e.g., Monday or 1st_of_month" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="pt-4 flex flex-col sm:flex-row gap-4 flex-shrink-0"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Create Rule</button><button type="button" id="cancel-bonus-rule-btn" class="clay-button w-full p-4 text-xl text-gray-700">Cancel</button></div></form></div></div>`,
+    createBonusRule: `<div id="create-bonus-rule-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-3xl p-6 sm:p-8 flex flex-col max-h-[95vh]"><h2 class="font-playfair text-3xl font-bold text-gray-700 mb-6 flex-shrink-0">Create New Bonus Rule</h2><form id="bonus-rule-form" class="space-y-6 overflow-y-auto pr-2"><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Basic Information</h3><div class="space-y-4"><div><label for="rule-name" class="block text-sm font-medium mb-1">Rule Name</label><input type="text" id="rule-name" placeholder="e.g., Monthly Excellence Bonus" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-description" class="block text-sm font-medium mb-1">Description</textarea><textarea id="rule-description" placeholder="Brief description of the bonus requirements" rows="3" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></textarea></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Active Period</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="effective-start-date" class="block text-sm font-medium mb-1">Effective Start Date</label><input type="date" id="effective-start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="effective-end-date" class="block text-sm font-medium mb-1">Effective End Date</label><input type="date" id="effective-end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="clay-card p-6"><h3 class="font-playfair text-xl font-bold mb-4">Target Requirements (All must be met)</h3><div class="grid grid-cols-1 sm:grid-cols-3 gap-4"><div><label for="rule-live-hours" class="block text-sm font-medium mb-1">Live Hours Target</label><input type="number" id="rule-live-hours" placeholder="e.g., 40" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-branded-items" class="block text-sm font-medium mb-1">Branded Items Target</label><input type="number" id="rule-branded-items" placeholder="e.g., 60" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-free-size" class="block text-sm font-medium mb-1">Free Size Target</label><input type="number" id="rule-free-size" placeholder="e.g., 100" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div></div></div><div class="clay-card p-6"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="rule-time-frame" class="block text-sm font-medium mb-1">Time Frame</label><select id="rule-time-frame" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="one-time">One-Time</option></select></div><div><label for="rule-bonus-amount" class="block text-sm font-medium mb-1">Bonus Amount (₱)</label><input type="number" step="0.01" id="rule-bonus-amount" placeholder="0.00" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none" required></div><div><label for="rule-reset-day" class="block text-sm font-medium mb-1">Reset Day (for weekly/monthly)</label><input type="text" id="rule-reset-day" placeholder="e.g., Monday or 1st_of_month" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="pt-4 flex flex-col sm:flex-row gap-4"><button type="submit" class="clay-button clay-button-primary w-full p-4 text-xl text-gray-800">Create Rule</button><button type="button" id="cancel-bonus-rule-btn" class="clay-button w-full p-4 text-xl text-gray-700">Cancel</button></div></form></div></div>`,
     deleteConfirmation: `<div id="delete-confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-md p-6 sm:p-8 text-center"><h2 class="font-playfair text-2xl font-bold text-gray-700 mb-4">Confirm Deletion</h2><p id="delete-confirm-message" class="text-gray-600 mb-6"></p><form id="delete-confirm-form"><div class="pt-6 flex flex-col sm:flex-row gap-4"><button type="submit" id="confirm-delete-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Delete</button><button type="button" id="cancel-delete-btn" class="clay-button w-full p-4 text-xl">Cancel</button></div></form></div></div>`,
     passwordConfirm: `<div id="password-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-md p-6 sm:p-8 text-center"><h2 class="font-playfair text-2xl font-bold text-gray-700 mb-4">Confirm Deletion with Password</h2><p class="text-gray-600 mb-6">Please enter your password to confirm this action. This cannot be undone.</p><form id="password-confirm-form" class="space-y-4"><div><label for="delete-password-input" class="block text-sm font-medium mb-2">Password</label><input type="password" id="delete-password-input" class="clay-inset w-full p-4 text-lg appearance-none focus:outline-none" required></div><div class="pt-4 flex flex-col sm:flex-row gap-4"><button type="submit" class="clay-button clay-button-deny w-full p-4 text-xl">Confirm Delete</button><button type="button" id="cancel-password-confirm-btn" class="clay-button w-full p-4 text-xl">Cancel</button></div></form></div></div>`,
     bonusRuleDetails: `<div id="bonus-rule-details-modal" class="hidden fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div class="clay-card w-full max-w-2xl p-6 sm:p-8"><h2 id="bonus-details-name" class="font-playfair text-3xl font-bold text-gray-700 mb-2"></h2><p id="bonus-details-description" class="text-gray-600 mb-6"></p><div class="space-y-4"><div class="clay-card p-4"><h3 class="font-playfair text-xl font-bold mb-2">Targets</h3><ul id="bonus-details-targets" class="list-disc list-inside space-y-1"></ul></div><div class="clay-card p-4"><h3 class="font-playfair text-xl font-bold mb-2">Details</h3><div class="grid grid-cols-2 gap-4"><p><strong>Bonus:</strong> <span id="bonus-details-amount"></span></p><p><strong>Time Frame:</strong> <span id="bonus-details-timeframe"></span></p><p><strong>Starts:</strong> <span id="bonus-details-start"></span></p><p><strong>Ends:</strong> <span id="bonus-details-end"></span></p></div></div></div><button type="button" id="close-bonus-details-btn" class="clay-button w-full p-4 text-xl text-gray-700 mt-8">Close</button></div></div>`,
@@ -41,9 +41,6 @@ export async function setupBonusReviewPage() {
 
     let bonusToReview = null;
 
-    // This function must be exported to be callable by renderBonusReviewList in this module
-    // It's not called directly by the main showPage switch, but by event listeners
-    // So no need to be 'export' unless it's imported elsewhere, but good for structure.
     const showReviewModal = (bonus) => {
         bonusToReview = bonus;
         reviewBonusTitle.textContent = `Review Bonus for ${bonus.profiles.full_name}`;
@@ -69,6 +66,11 @@ export async function setupBonusReviewPage() {
         button.textContent = 'Submitting...';
 
         try {
+            const bonusToReview = setupBonusReviewPage._bonusToReview;
+            if (!bonusToReview) {
+                throw new Error("No bonus selected for review.");
+            }
+
             if (actionType === 'approve') {
                 const { error } = await _supabase.rpc('approve_seller_bonus', { p_bonus_id: bonusToReview.id, p_admin_notes: notes || null });
                 if (error) throw error;
@@ -88,19 +90,18 @@ export async function setupBonusReviewPage() {
         }
     };
 
-    approveBonusBtn.addEventListener('click', (e) => { e.preventDefault(); handleReviewAction('approve'); });
-    rejectBonusBtn.addEventListener('click', (e) => { e.preventDefault(); handleReviewAction('reject'); });
+    approveBonusBtn.addEventListener('click', (e) => { e.preventDefault(); handleReviewAction('approve', reviewBonusNotesInput); });
+    rejectBonusBtn.addEventListener('click', (e) => { e.preventDefault(); handleReviewAction('reject', reviewBonusNotesInput); });
     cancelReviewBtn.addEventListener('click', () => { reviewModal.classList.add('hidden'); });
 
     await renderBonusReviewList();
 
-    // Real-time listener for seller_bonuses_achieved
     const bonusReviewChannel = _supabase.channel('public:seller_bonuses_achieved')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'seller_bonuses_achieved' }, payload => {
             renderBonusReviewList();
         })
         .subscribe();
-    state.channels.push(bonusReviewChannel);
+    channels.push(bonusReviewChannel);
 }
 
 export async function renderBonusReviewList() {
@@ -149,14 +150,14 @@ export async function renderBonusReviewList() {
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     ${bonuses.map((bonus, index) => `
-                        <tr class="<span class="math-inline">\{index % 2 \!\=\= 0 ? 'bg\-\[rgba\(0,0,0,0\.04\)\]' \: ''\}"\>
-<td class\="px\-6 py\-4 whitespace\-nowrap text\-sm font\-medium text\-gray\-900"\></span>{bonus.profiles.full_name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="math-inline">\{bonus\.rules ? bonus\.rules\.rule\_name \: \(bonus\.rule\_sets ? bonus\.rule\_sets\.name \: 'N/A'\)\}</td\>
-<td class\="px\-6 py\-4 whitespace\-nowrap text\-sm text\-gray\-500"\>₱</span>{bonus.bonus_amount_awarded.toFixed(2)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(bonus.calculation_period_start).toLocaleDateString()} - <span class="math-inline">\{new Date\(bonus\.calculation\_period\_end\)\.toLocaleDateString\(\)\}</td\>
-<td class\="px\-6 py\-4 whitespace\-nowrap text\-sm text\-gray\-500"\></span>{new Date(bonus.achieved_date).toLocaleDateString()} <span class="math-inline">\{new Date\(bonus\.achieved\_date\)\.toLocaleTimeString\(\)\}</td\>
-<td class\="px\-6 py\-4 whitespace\-nowrap text\-sm font\-medium"\>
-<button class\="review\-bonus\-btn clay\-button clay\-button\-primary px\-3 py\-1 text\-sm" data\-bonus\='</span>{JSON.stringify(bonus)}'>Review</button>
+                        <tr class="${index % 2 !== 0 ? 'bg-[rgba(0,0,0,0.04)]' : ''}">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bonus.profiles.full_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bonus.rules ? bonus.rules.rule_name : (bonus.rule_sets ? bonus.rule_sets.name : 'N/A')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱${bonus.bonus_amount_awarded.toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(bonus.calculation_period_start).toLocaleDateString()} - ${new Date(bonus.calculation_period_end).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(bonus.achieved_date).toLocaleDateString()} ${new Date(bonus.achieved_date).toLocaleTimeString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="review-bonus-btn clay-button clay-button-primary px-3 py-1 text-sm" data-bonus='${JSON.stringify(bonus)}'>Review</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -165,7 +166,6 @@ export async function renderBonusReviewList() {
         </div>
     `;
     document.querySelectorAll('.review-bonus-btn').forEach(button => {
-        // Remove old listeners to prevent duplicates
         if (button._hasReviewBonusListener) {
             button.removeEventListener('click', button._hasReviewBonusListener);
         }
@@ -177,4 +177,81 @@ export async function renderBonusReviewList() {
         button._hasReviewBonusListener = reviewHandler;
     });
     lucide.createIcons();
+}
+
+export function showReviewModal(bonus) { // Exported for renderBonusReviewList to call
+    const reviewModal = document.getElementById('review-bonus-modal');
+    const reviewBonusTitle = document.getElementById('review-bonus-title');
+    const reviewBonusDetails = document.getElementById('review-bonus-details');
+    const reviewBonusNotesInput = document.getElementById('review-bonus-notes');
+    const approveBonusBtn = document.getElementById('approve-bonus-action-btn');
+    const rejectBonusBtn = document.getElementById('reject-bonus-action-btn');
+    const cancelReviewBtn = document.getElementById('cancel-review-bonus-btn');
+
+    if (!reviewModal || !reviewBonusTitle || !reviewBonusDetails || !reviewBonusNotesInput || !approveBonusBtn || !rejectBonusBtn || !cancelReviewBtn) {
+        console.error("Bonus review modal elements not found in showReviewModal.");
+        return;
+    }
+
+    // Assign bonusToReview to module scope for handleReviewAction
+    // Note: this relies on bonusToReview being module-scoped and updated by showReviewModal.
+    // A clearer pattern might be to pass bonusToReview directly to handleReviewAction,
+    // or wrap the whole review logic in a class/object. For now, this matches existing pattern.
+    // Let's ensure bonusToReview is correctly accessible via module scope.
+    if (!setupBonusReviewPage._bonusToReview) { // Create a property to hold it
+        setupBonusReviewPage._bonusToReview = null;
+    }
+    setupBonusReviewPage._bonusToReview = bonus;
+
+
+    reviewBonusTitle.textContent = `Review Bonus for ${bonus.profiles.full_name}`;
+    reviewBonusDetails.innerHTML = `
+        <p><strong>Rule:</strong> ${bonus.rules ? bonus.rules.rule_name : (bonus.rule_sets ? bonus.rule_sets.name : 'N/A')}</p>
+        <p><strong>Amount:</strong> ₱${bonus.bonus_amount_awarded.toFixed(2)}</p>
+        <p><strong>Period:</strong> ${new Date(bonus.calculation_period_start).toLocaleDateString()} - ${new Date(bonus.calculation_period_end).toLocaleDateString()}</p>
+        <p><strong>Achieved On:</strong> ${new Date(bonus.achieved_date).toLocaleDateString()} ${new Date(bonus.achieved_date).toLocaleTimeString()}</p>
+    `;
+    reviewBonusNotesInput.value = bonus.admin_notes || '';
+    reviewModal.classList.remove('hidden');
+}
+
+// Internal helper for review actions
+async function handleReviewAction(actionType, reviewNotesInput) {
+    const notes = reviewNotesInput.value.trim();
+    const reviewModal = document.getElementById('review-bonus-modal');
+    const approveBonusBtn = document.getElementById('approve-bonus-action-btn');
+    const rejectBonusBtn = document.getElementById('reject-bonus-action-btn');
+
+    if (actionType === 'reject' && !notes) {
+        showAlert('Validation Error', 'Admin notes are required for rejecting a bonus.');
+        return;
+    }
+
+    const button = actionType === 'approve' ? approveBonusBtn : rejectBonusBtn;
+    button.disabled = true;
+    button.textContent = 'Submitting...';
+
+    try {
+        const bonusToReview = setupBonusReviewPage._bonusToReview; // Retrieve from stored property
+        if (!bonusToReview) {
+            throw new Error("No bonus selected for review.");
+        }
+
+        if (actionType === 'approve') {
+            const { error } = await _supabase.rpc('approve_seller_bonus', { p_bonus_id: bonusToReview.id, p_admin_notes: notes || null });
+            if (error) throw error;
+            showAlert('Success', 'Bonus approved successfully.');
+        } else {
+            const { error } = await _supabase.rpc('reject_seller_bonus', { p_bonus_id: bonusToReview.id, p_admin_notes: notes });
+            if (error) throw error;
+            showAlert('Success', 'Bonus rejected successfully.');
+        }
+        reviewModal.classList.add('hidden');
+        renderBonusReviewList(); // Re-render the list after action
+    } catch (error) {
+        showAlert('Error', `Failed to ${actionType} bonus: ${error.message}`);
+    } finally {
+        button.disabled = false;
+        button.textContent = actionType === 'approve' ? 'Approve Bonus' : 'Reject Bonus';
+    }
 }
