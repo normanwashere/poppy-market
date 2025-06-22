@@ -69,7 +69,6 @@ export async function initializeScheduler() {
     const initialEvents = data.map(formatEvent);
 
     // Initialize FullCalendar instance
-    // THIS LINE MUST NOT HAVE 'let' or 'const' - it's an assignment to the module-scoped variable
     calendarInstance = new FullCalendar.Calendar(calendarEl, {
         initialView: window.innerWidth < 768 ? 'dayGridWeek' : 'dayGridMonth',
         headerToolbar: {
@@ -208,7 +207,7 @@ export async function initializeScheduler() {
                         btn.disabled = false; btn.textContent = 'Approve Takeover'; // Restore state
                     };
                 } else {
-                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for this state.</p>`;
+                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`;
                 }
             } else if (state.profile.role === 'seller') {
                 if (isMine && props.status === 'locked') {
