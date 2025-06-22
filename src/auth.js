@@ -7,7 +7,12 @@ export function setupLoginPage() {
     const loginForm = document.getElementById('login-form');
     if (!loginForm) return;
 
-    loginForm.addEventListener('submit', async (e) => {
+    // Remove existing listener to prevent duplicates if function is called multiple times
+    if (loginForm._hasLoginListener) {
+        loginForm.removeEventListener('submit', loginForm._hasLoginListener);
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
@@ -25,14 +30,21 @@ export function setupLoginPage() {
         loginButton.textContent = 'Login';
         // checkUserSession (in main.js) will be triggered by onAuthStateChange
         // and handle the final page redirection or further error messages.
-    });
+    };
+    loginForm.addEventListener('submit', handleSubmit);
+    loginForm._hasLoginListener = handleSubmit; // Store reference to the handler
 }
 
 export function setupSignupPage() {
     const signupForm = document.getElementById('signup-form');
     if (!signupForm) return;
 
-    signupForm.addEventListener('submit', async (e) => {
+    // Remove existing listener to prevent duplicates
+    if (signupForm._hasSignupListener) {
+        signupForm.removeEventListener('submit', signupForm._hasSignupListener);
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const full_name = document.getElementById('fullname').value;
         const email = document.getElementById('email').value;
@@ -57,5 +69,7 @@ export function setupSignupPage() {
         }
         signupButton.disabled = false;
         signupButton.textContent = 'Create Account';
-    });
+    };
+    signupForm.addEventListener('submit', handleSubmit);
+    signupForm._hasSignupListener = handleSubmit; // Store reference
 }
