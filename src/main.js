@@ -10,10 +10,9 @@ import { setupBonusRulesPage, setupRuleSetManagementPage, showRuleSetDetailsModa
 import { setupBonusReviewPage, showReviewModal } from './bonusReview.js';
 import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } from './settings.js';
 import { setupUserProfilePage } from './userProfile.js';
-
 import { setupDashboardPage } from './dashboard.js';
 
-// Global DOM Elements (access from main.js as they are fixed on index.html)
+// Global DOM Elements
 const loader = document.getElementById('loader');
 const appContainer = document.getElementById('app-container');
 const modalContainer = document.getElementById('modal-container');
@@ -23,14 +22,13 @@ const profileDropdown = document.getElementById('profile-dropdown');
 const profileButton = document.getElementById('profile-button');
 const profileName = document.getElementById('profile-name');
 
-// Expose state and core functions globally for direct calls from other modules if needed,
-// though passing them as arguments is often cleaner for specific functions.
+// Expose state and core functions globally for convenience
 window.state = state;
 window.showAlert = showAlert;
 window.setLoading = setLoading;
-window.lucide = lucide; // Expose Lucide global function (assuming it's loaded from index.html)
+window.lucide = lucide; 
 
-// Helper to fetch global settings (still resides here as it's a core global operation for app state)
+// Helper to fetch global settings
 async function fetchGlobalSettings() {
     console.log("Calling fetchGlobalSettings...");
     const { data, error } = await _supabase.from('global_settings').select('*');
@@ -41,22 +39,15 @@ async function fetchGlobalSettings() {
     state.globalSettings = data.reduce((acc, setting) => {
         let value;
         switch (setting.data_type) {
-            case 'numeric':
-                value = parseFloat(setting.value);
-                break;
-            case 'boolean':
-                value = setting.value === 'true';
-                break;
+            case 'numeric': value = parseFloat(setting.value); break;
+            case 'boolean': value = setting.value === 'true'; break;
             case 'json':
-                try {
-                    value = JSON.parse(setting.value);
-                } catch (e) {
+                try { value = JSON.parse(setting.value); } catch (e) {
                     console.error(`Error parsing JSON for setting ${setting.key_name}:`, e);
-                    value = setting.value; // Fallback to raw string
+                    value = setting.value;
                 }
                 break;
-            default:
-                value = setting.value;
+            default: value = setting.value;
         }
         acc[setting.key_name] = value;
         return acc;
@@ -71,14 +62,14 @@ export function showPage(pageName) {
         channels.forEach(channel => {
             _supabase.removeChannel(channel);
         });
-        channels = []; // Clear the array after removing channels
+        // FIX: Clear the array by changing its length instead of reassigning it.
+        channels.length = 0;
     }
 
     if (!pageTemplates[pageName]) return;
     appContainer.innerHTML = pageTemplates[pageName];
     state.currentPage = pageName;
 
-    // Re-attach data-page listeners for internal navigation
     appContainer.querySelectorAll('[data-page]').forEach(el => {
         el.addEventListener('click', (e) => {
             e.preventDefault();
@@ -86,10 +77,8 @@ export function showPage(pageName) {
         })
     });
 
-    // Re-create icons after the new page content has been injected
     lucide.createIcons();
 
-    // Call specific setup function for the page
     switch (pageName) {
         case 'login': setupLoginPage(); break;
         case 'signup': setupSignupPage(); break;
@@ -107,23 +96,22 @@ export function showPage(pageName) {
 // Central function to handle user session checks
 async function checkUserSession() {
     console.log("checkUserSession called.");
-    setLoading(true); // Shows global loader
-    await fetchGlobalSettings(); // Fetches settings from global_settings table
+    setLoading(true);
+    await fetchGlobalSettings();
     console.log("fetchGlobalSettings completed.");
 
-    const { data: { session }, error } = await _supabase.auth.getSession(); // Checks for an active user session
+    const { data: { session }, error } = await _supabase.auth.getSession();
     console.log("getSession completed, session:", session, "error:", error);
 
     if (error) {
         console.error("Error getting session:", error.message);
         showAlert('Session Error', 'Could not retrieve session. Please log in again.', () => handleLogout(true));
-        setLoading(false); // Ensure loader is hidden even on error
+        setLoading(false);
         return;
     }
 
     if (session) {
         state.currentUser = session.user;
-        // Fetches the user's profile from the 'profiles' table
         const { data: profile, error: profileError } = await _supabase
             .from('profiles')
             .select('*')
@@ -133,31 +121,29 @@ async function checkUserSession() {
         if (profileError) {
             console.error("Error fetching profile:", profileError.message);
             showAlert('Profile Error', 'Could not load your profile. Please try logging in again.', () => handleLogout(true));
-            setLoading(false); // Ensure loader is hidden on profile fetch error
+            setLoading(false);
         } else if (profile) {
             if (profile.status === 'approved') {
                 state.profile = profile;
                 state.isLoggedIn = true;
-                renderNav(); // renderNav now imports state directly
+                renderNav();
                 if (state.currentPage === 'login' || state.currentPage === 'signup') {
                     showPage('dashboard');
                 } else {
-                    // If already on a page (e.g., after refresh), re-render that page
                     showPage(state.currentPage);
                 }
             } else {
                 await _supabase.auth.signOut();
                 showAlert('Account Pending', 'Your account is still awaiting admin approval. You can login once approved.', () => handleLogout(true));
-                setLoading(false); // Ensure loader is hidden on pending account
+                setLoading(false);
             }
         }
     } else {
-        handleLogout(true); // No session found, proceed to login page
+        handleLogout(true);
     }
-    // setLoading(false) is now handled by handleLogout or specific error paths within this function.
 }
 
-// Central function to handle logout (MODIFIED: Added 'export' keyword here)
+// Central function to handle logout
 export async function handleLogout(isInitial = false) {
     if (!isInitial) {
         const { error } = await _supabase.auth.signOut();
@@ -169,16 +155,16 @@ export async function handleLogout(isInitial = false) {
     state.isLoggedIn = false;
     state.currentUser = null;
     state.profile = null;
-    state.currentPage = 'login'; // Reset current page to login
+    state.currentPage = 'login';
 
     if (channels.length > 0) {
         channels.forEach(channel => _supabase.removeChannel(channel));
-        channels = [];
+        channels.length = 0; // Also apply the fix here for consistency
     }
 
-    renderNav(); // renderNav now imports state directly
+    renderNav();
     showPage('login');
-    setLoading(false); // Ensure loader is always hidden after logout flow
+    setLoading(false);
 }
 
 // --- App Initialization ---
@@ -188,17 +174,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _supabase.auth.onAuthStateChange((event, session) => {
         console.log("onAuthStateChange fired. Event:", event, "Session:", session);
-        checkUserSession();
+        // Do not call checkUserSession() directly here to avoid loops on sign out.
+        // It's better to handle initial load and then specific events.
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            checkUserSession();
+        } else if (event === 'SIGNED_OUT') {
+            handleLogout(true);
+        }
     });
+    
+    // Initial check in case there's no auth state change on first load
+    checkUserSession();
+
 
     // Event listeners for header navigation
     const profileButton = document.getElementById('profile-button');
     const profileDropdown = document.getElementById('profile-dropdown');
     if (profileButton && profileDropdown) {
-        if (!profileButton._hasProfileToggleListener) { // Add flag to prevent duplicate listeners
-            const toggleHandler = () => {
-                profileDropdown.classList.toggle('hidden');
-            };
+        if (!profileButton._hasProfileToggleListener) {
+            const toggleHandler = () => profileDropdown.classList.toggle('hidden');
             profileButton.addEventListener('click', toggleHandler);
             profileButton._hasProfileToggleListener = toggleHandler;
 
@@ -210,12 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Delegated click handler for data-page navigation (app-wide)
+    // Delegated click handler for data-page navigation
     document.body.addEventListener('click', (e) => {
         const pageButton = e.target.closest('[data-page]');
         if (pageButton) {
             e.preventDefault();
-            // Close profile dropdown if open
             if (profileDropdown && !profileDropdown.classList.contains('hidden')) {
                 profileDropdown.classList.add('hidden');
             }
