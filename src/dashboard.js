@@ -1,7 +1,7 @@
 // src/dashboard.js
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert, parseDateAsUTC, getWeekRange, getMonthRange, setLoading } from './helpers.js';
-import { showRuleSetDetailsModal } from './rules.js'; // Import showRuleSetDetailsModal for use in showBonusDetailsModalForDashboard
+import { showRuleSetDetailsModal } from './rules.js'; // Ensure this is correctly imported and available
 
 // Module-scoped variables (accessible by all functions in this module)
 let dashboardFilteredData = [];
@@ -9,7 +9,7 @@ let dashboardSortConfig = { key: 'session_start_time', direction: 'desc' };
 let dashboardCurrentPage = 1;
 const dashboardEntriesPerPage = 5;
 
-// Helper function to create sortable table headers
+// Helper function to create sortable table headers (internal)
 function createSortableHeader(label, key, currentSortConfig) {
     const th = document.createElement('th');
     th.className = "p-4 text-left font-semibold uppercase tracking-wider text-xs cursor-pointer";
@@ -25,7 +25,7 @@ function createSortableHeader(label, key, currentSortConfig) {
     return th;
 }
 
-// Function to render the dashboard table content
+// Function to render the dashboard table content (internal)
 function renderDashboardTable() {
     const tableHead = document.querySelector('#table-container thead tr');
     const tableBody = document.getElementById('table-body');
@@ -71,7 +71,7 @@ function renderDashboardTable() {
     });
 }
 
-// Function to render dashboard pagination controls
+// Function to render dashboard pagination controls (internal)
 function renderDashboardPagination() {
     const paginationControls = document.getElementById('pagination-controls');
     const pageInfo = document.getElementById('page-info');
@@ -90,12 +90,12 @@ function renderDashboardPagination() {
     nextPageBtn.disabled = dashboardCurrentPage === totalPages;
 }
 
-// Helper to display bonus details in a modal
+// Helper to display bonus details in a modal (internal)
 async function showBonusDetailsModalForDashboard(ruleId) {
     showRuleSetDetailsModal(ruleId); // Calls the function imported from rules.js
 }
 
-// Function to render bonus/incentive cards
+// Function to render bonus/incentive cards (internal)
 async function renderBonusCards(performanceData, filterRange) {
     const bonusCardsContainer = document.getElementById('bonus-cards-container');
     if (!bonusCardsContainer) {
@@ -199,8 +199,9 @@ async function renderBonusCards(performanceData, filterRange) {
     window.lucide.createIcons();
 }
 
-// Function that orchestrates fetching and rendering dashboard data
-async function updateDashboardView() {
+// Main function that orchestrates fetching and rendering dashboard data for a given role.
+// This is NOT exported; it's called by initializeAdminDashboard and initializeSellerDashboard
+async function runDashboardLogic(role) {
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
@@ -447,7 +448,7 @@ async function updateDashboardView() {
             }
         }
     };
-    setupDashboardListeners(); // Call to set up listeners for elements inside this current dashboard view
+    setupDashboardListeners();
 
     if (role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) {
         const { data: sellers, error } = await _supabase.from('profiles').select('id, full_name').eq('role', 'seller').order('full_name');
@@ -461,4 +462,39 @@ async function updateDashboardView() {
     await updateDashboardView();
 
     setLoading(false);
+}
+
+// Admin Dashboard Initialization (INTERNAL to dashboard.js)
+function initializeAdminDashboard(container) {
+    container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div class="md:col-span-2 clay-card p-6 flex flex-col justify-center"><div class="flex items-center justify-between text-gray-600 mb-2"><h3 id="final-pay-label" class="text-lg font-semibold uppercase tracking-wider"></h3><i data-lucide="wallet" class="text-gray-500"></i></div><p id="final-pay" class="font-playfair text-6xl font-bold" style="color: #831843;">₱0.00</p></div>
+        <div class="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="live-duration-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="live-duration" class="font-playfair text-3xl font-bold text-gray-800 mt-2">0.0 <span class="text-xl align-baseline">hrs</span></p></div>
+            <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="base-pay-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="base-pay" class="font-playfair text-3xl font-bold text-gray-800 mt-2">₱0.00</p></div>
+            <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="branded-sold-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="branded-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+            <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="free-size-sold-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="free-size-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+        </div>
+    </div>
+    <div class="clay-card p-6 mb-8"><h3 class="font-playfair text-2xl font-bold mb-4">Running Incentives</h3><div id="bonus-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
+    <div class="clay-card overflow-hidden"><h2 id="logged-entries-title" class="text-xl p-6 font-bold font-playfair border-b-2 border-dashed border-lavender-300"></h2><div id="table-container" class="overflow-x-auto"><table class="w-full table-auto"><thead class="text-gray-600"><tr></tr></thead><tbody id="table-body"></tbody></table></div><div id="no-entries" class="text-center p-8 text-gray-500 hidden">No entries found.</div><div id="pagination-controls" class="p-4 flex items-center justify-between flex-wrap gap-2"><span id="page-info" class="text-sm"></span><div class="flex items-center gap-2"><button id="prev-page" class="clay-button p-2 disabled:opacity-50"><i data-lucide="chevron-left"></i></button><button id="next-page" class="clay-button p-2 disabled:opacity-50"><i data-lucide="chevron-right"></i></button></div></div></div>`;
+    runDashboardLogic('admin');
+}
+
+// Seller Dashboard Initialization (INTERNAL to dashboard.js)
+function initializeSellerDashboard(container) {
+    container.innerHTML = `
+        <div class="clay-card p-4 mb-8"><div class="flex flex-col sm:flex-row items-center justify-between gap-4"><div class="flex-grow flex flex-wrap items-end gap-4"><div><label for="date-filter" class="block text-sm font-medium mb-1">Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div><div id="custom-date-filters" class="hidden flex-grow sm:flex items-end gap-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="w-full sm:w-auto mt-4 sm:mt-0"><button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button></div></div></div>
+           <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+             <div class="md:col-span-2 clay-card p-6 flex flex-col justify-center"><div class="flex items-center justify-between text-gray-600 mb-2"><h3 id="final-pay-label" class="text-lg font-semibold uppercase tracking-wider"></h3><i data-lucide="wallet" class="text-gray-500"></i></div><p id="final-pay" class="font-playfair text-6xl font-bold" style="color: #831843;">₱0.00</p></div>
+            <div class="md:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="live-duration-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="live-duration" class="font-playfair text-3xl font-bold text-gray-800 mt-2">0.0 <span class="text-xl align-baseline">hrs</span></p></div>
+                <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="base-pay-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="base-pay" class="font-playfair text-3xl font-bold text-gray-800 mt-2">₱0.00</p></div>
+                <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="branded-sold-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="branded-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+                <div class="clay-card p-4 flex flex-col justify-center text-center"><h3 id="free-size-sold-label" class="text-sm font-semibold uppercase tracking-wider text-gray-600"></h3><p id="free-size-sold" class="font-playfair text-3xl font-bold mt-2 text-gray-800">0</p></div>
+            </div>
+        </div>
+        <div class="clay-card p-6 mb-8"><h3 class="font-playfair text-2xl font-bold mb-4">Running Incentives</h3><div id="bonus-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
+        <div class="clay-card overflow-hidden"><h2 id="logged-entries-title" class="text-xl p-6 font-bold font-playfair border-b-2 border-dashed border-lavender-300"></h2><div id="table-container" class="overflow-x-auto"><table class="w-full table-auto"><thead class="text-gray-600"><tr></tr></thead><tbody id="table-body"></tbody></table></div><div id="no-entries" class="text-center p-8 text-gray-500 hidden">No entries found for the selected filters.</div><div id="pagination-controls" class="p-4 flex items-center justify-between flex-wrap gap-2"><span id="page-info" class="text-sm"></span><div class="flex items-center gap-2"><button id="prev-page" class="clay-button p-2 disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="chevron-left"></i></button><button id="next-page" class="clay-button p-2 disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="chevron-right"></i></button></div></div></div>`;
+    runDashboardLogic('seller');
 }
