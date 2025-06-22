@@ -1,4 +1,4 @@
-// src/scheduler.js (with debugging logs)
+// src/scheduler.js
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert } from './helpers.js';
 
@@ -73,19 +73,15 @@ export async function initializeScheduler() {
         },
         firstDay: 3,
         dateClick: function (info) {
-            // --- START DEBUGGING ---
+            // ... (rest of dateClick logic remains the same)
             console.log("--- Calendar Click Log ---");
             console.log("1. dateClick event fired for date:", info.date);
-
-            // Check 1: Role Check
             console.log("2. Checking user role. Role is:", state.profile.role);
             if (state.profile.role !== 'seller') {
                 console.log("   -> FAILED: User is not a seller. Aborting.");
                 showAlert('Permission Denied', 'Only sellers can book sessions.');
                 return;
             }
-
-            // Check 2: Past Date Check
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             console.log("3. Checking if date is in the past. Clicked date:", info.date, "Today:", today);
@@ -94,8 +90,6 @@ export async function initializeScheduler() {
                 showAlert('Invalid Date', 'You cannot book a session in the past.');
                 return;
             }
-
-            // Check 3: Existing Event Check
             console.log("4. Checking for existing events on this day for user ID:", state.profile.id);
             const eventsOnDay = calendarInstance.getEvents().filter(event => {
                 return event.start.toDateString() === info.date.toDateString() &&
@@ -108,10 +102,7 @@ export async function initializeScheduler() {
                 showAlert('Already Booked', 'You already have a session on this day. Please choose another day or manage your existing booking.');
                 return;
             }
-
             console.log("5. SUCCESS: All checks passed. Showing booking modal.");
-            // --- END DEBUGGING ---
-            
             bookingForm.reset();
             currentSelectionInfo = info;
             eventTitleInput.value = profile.full_name;
@@ -142,5 +133,7 @@ export async function initializeScheduler() {
             }
         })
         .subscribe();
+    
+    // FIX: Push to the 'channels' array directly
     channels.push(eventChannel);
 }
