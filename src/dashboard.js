@@ -10,7 +10,6 @@ let dashboardCurrentPage = 1;
 const dashboardEntriesPerPage = 5;
 
 // Helper function to create sortable table headers
-// This function needs to be outside runDashboardLogic scope to be called by renderDashboardTable
 function createSortableHeader(label, key, currentSortConfig) {
     const th = document.createElement('th');
     th.className = "p-4 text-left font-semibold uppercase tracking-wider text-xs cursor-pointer";
@@ -18,11 +17,10 @@ function createSortableHeader(label, key, currentSortConfig) {
     const iconContainer = currentSortConfig.key === key ? `<i data-lucide="${currentSortConfig.direction === 'asc' ? 'chevron-up' : 'chevron-down'}" class="h-4 w-4 ml-1"></i>` : '<div class="h-4 w-4 ml-1 opacity-20"><i data-lucide="chevron-down"></i></div>';
     th.innerHTML = `<div class="flex items-center">${label}${iconContainer}</div>`;
     th.addEventListener('click', () => {
-        // Update module-scoped sort config
         dashboardSortConfig.direction = (currentSortConfig.key === key && currentSortConfig.direction === 'asc') ? 'desc' : 'asc';
         dashboardSortConfig.key = key;
         dashboardCurrentPage = 1;
-        updateDashboardView(); // Re-render the dashboard
+        updateDashboardView();
     });
     return th;
 }
@@ -51,7 +49,7 @@ function renderDashboardTable() {
         headers.splice(1, 0, { label: 'Seller', key: 'profiles.full_name' });
     }
 
-    headers.forEach(h => tableHead.appendChild(createSortableHeader(h.label, h.key, dashboardSortConfig))); // Pass dashboardSortConfig
+    headers.forEach(h => tableHead.appendChild(createSortableHeader(h.label, h.key, dashboardSortConfig)));
 
     const startIndex = (dashboardCurrentPage - 1) * dashboardEntriesPerPage;
     const paginatedData = dashboardFilteredData.slice(startIndex, startIndex + dashboardEntriesPerPage);
@@ -201,8 +199,8 @@ async function renderBonusCards(performanceData, filterRange) {
     window.lucide.createIcons();
 }
 
-// Main function to run dashboard logic, called by setupDashboardPage
-export async function runDashboardLogic(role) {
+// Function that orchestrates fetching and rendering dashboard data
+export async function updateDashboardView() { // EXPORT THIS FUNCTION TOO!
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
@@ -224,7 +222,140 @@ export async function runDashboardLogic(role) {
     const loggedEntriesTitle = document.getElementById('logged-entries-title');
     const bonusCardsContainer = document.getElementById('bonus-cards-container');
 
-    // Attach event listeners for dashboard filters and pagination
+    const baseHourlyPay = state.globalSettings.base_hourly_pay_seller || 0;
+    const defaultCurrencySymbol = state.globalSettings.default_currency_symbol || '₱';
+
+    let query = _supabase.from('logged_sessions').select('*, profiles!seller_id(full_name)');
+
+    if (state.profile.role === 'seller') {
+        query = query.eq('seller_id', profile.id);
+    } else if (sellerFilter) {
+        const selectedSellerId = sellerFilter.value;
+        if (selectedSellerId !== 'all') {
+            query = query.eq('seller_id', selectedSellerId);
+        }
+    }
+
+    let range = { start: null, end: null };
+    if (dateFilter) {
+        switch (dateFilter.value) {
+            case 'This Week': range = getWeekRange('this'); break;
+            case 'Last Week': range = getWeekRange('last'); break;
+            case 'This Month': range = getMonthRange('this'); break;
+            case 'Custom':
+                if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+                    range.start = parseDateAsUTC(startDateInput.value);
+                    range.end = parseDateAsUTC(endDateInput.value);
+                    if (range.end) range.end.setUTCHours(23, 59, 59, 999);
+                }
+                break;
+            default: break;
+        }
+    }
+    if (range.start) query = query.gte('session_start_time', range.start.toISOString());
+    if (range.end) query = query.lte('session_start_time', range.end.toISOString());
+
+    const { data, error } = await query;
+    if (error) { showAlert('Error', 'Could not fetch session data: ' + error.message); return; }
+
+    dashboardFilteredData = data;
+
+    const metrics = dashboardFilteredData.reduce((acc, item) => {
+        acc.duration += item.live_duration_hours || 0;
+        acc.basePay += (item.live_duration_hours || 0) * baseHourlyPay;
+        acc.branded_items += item.branded_items_sold || 0;
+        acc.free_size_items += item.free_size_items_sold || 0;
+        acc.total_revenue += item.total_revenue || 0;
+        return acc;
+    }, { duration: 0, basePay: 0, branded_items: 0, free_size_items: 0, total_revenue: 0 });
+
+    let totalBonusAmount = 0;
+    const { data: activeBonusRuleSets, error: ruleSetError } = await _supabase
+        .from('rule_sets')
+        .select(`
+            rules (criteria_field, operator, target_value, payout_type, payout_value)
+        `)
+        .eq('is_active', true)
+        .in('rule_type_id', (await _supabase.from('rule_types').select('id').eq('name', 'Bonus')).data.map(t => t.id))
+        .filter('effective_start_date', 'lte', new Date().toISOString())
+        .or('effective_end_date.is.null,effective_end_date.gte.' + new Date().toISOString());
+
+    if (ruleSetError) {
+        console.error('Error fetching active bonus rule sets for calculation:', ruleSetError.message);
+    } else if (activeBonusRuleSets) {
+        activeBonusRuleSets.forEach(ruleSet => {
+            let allRulesInSetMet = true;
+            let payoutForThisSet = 0;
+
+            if (ruleSet.rules && ruleSet.rules.length > 0) {
+                ruleSet.rules.forEach(rule => {
+                    const metricValue = metrics[rule.criteria_field] || 0;
+                    let ruleMet = false;
+
+                    switch (rule.operator) {
+                        case '>=': ruleMet = (metricValue >= rule.target_value); break;
+                        case '>': ruleMet = (metricValue > rule.target_value); break;
+                        case '=': ruleMet = (metricValue === rule.target_value); break;
+                        case '<': ruleMet = (metricValue < rule.target_value); break;
+                        case '<=': ruleMet = (metricValue <= rule.target_value); break;
+                    }
+
+                    if (!ruleMet) {
+                        allRulesInSetMet = false;
+                    } else {
+                        if (rule.payout_type === 'fixed_amount') {
+                            payoutForThisSet += rule.payout_value;
+                        } else if (rule.payout_type === 'percentage') {
+                            payoutForThisSet += (metrics.total_revenue || 0) * (rule.payout_value / 100);
+                        } else if (rule.payout_type === 'per_unit') {
+                            payoutForThisSet += (metrics.branded_items + metrics.free_size_items) * rule.payout_value;
+                        }
+                    }
+                });
+            } else {
+                allRulesInSetMet = false;
+            }
+
+            if (allRulesInSetMet) {
+                totalBonusAmount += payoutForThisSet;
+            }
+        });
+    }
+
+    // Only attempt to render bonus cards if the container element exists (i.e., it's the admin dashboard)
+    if (bonusCardsContainer) {
+        await renderBonusCards(dashboardFilteredData, range);
+    } else {
+        console.log("Bonus cards container not found (likely seller dashboard), skipping renderBonusCards.");
+    }
+
+    const finalPay = metrics.basePay + totalBonusAmount;
+    const sellerName = (state.profile.role === 'admin' && sellerFilter && sellerFilter.value !== 'all') ? sellerFilter.options[sellerFilter.selectedIndex].text : profile.full_name;
+    const isAllSellers = state.profile.role === 'admin' && sellerFilter && sellerFilter.value === 'all';
+
+    if (finalPayLabel) finalPayLabel.textContent = "Final Pay";
+    if (liveDurationLabel) liveDurationLabel.textContent = "Live Duration";
+    if (basePayLabel) basePayLabel.textContent = "Base Pay";
+    if (brandedSoldLabel) brandedSoldLabel.textContent = "Branded Sold";
+    if (freeSizeSoldLabel) freeSizeSoldLabel.textContent = "Free Size Sold";
+    if (loggedEntriesTitle) loggedEntriesTitle.textContent = isAllSellers ? 'All Logged Entries' : `${sellerName}'s Logged Entries`;
+
+    if (finalPayEl) finalPayEl.textContent = `${defaultCurrencySymbol}${finalPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    if (liveDurationEl) liveDurationEl.innerHTML = `${metrics.duration.toFixed(1)} <span class="text-xl align-baseline">hrs</span>`;
+    if (basePayEl) basePayEl.textContent = `${defaultCurrencySymbol}${metrics.basePay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    if (brandedSoldEl) brandedSoldEl.textContent = metrics.branded_items.toLocaleString();
+    if (freeSizeSoldEl) freeSizeSoldEl.textContent = metrics.free_size_items.toLocaleString();
+
+    dashboardFilteredData.sort((a, b) => {
+        const aValue = a[dashboardSortConfig.key];
+        const bValue = b[dashboardSortConfig.key];
+        if (aValue < bValue) return dashboardSortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return dashboardSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    renderDashboardTable();
+    renderDashboardPagination();
+
     const setupDashboardListeners = () => {
         if (dateFilter && !dateFilter._hasDashboardListeners) {
             dateFilter.addEventListener('change', () => {
@@ -240,6 +371,7 @@ export async function runDashboardLogic(role) {
             const nextPageBtn = document.getElementById('next-page');
             if (prevPageBtn) prevPageBtn.addEventListener('click', () => { if (dashboardCurrentPage > 1) { dashboardCurrentPage--; renderDashboardTable(); renderDashboardPagination(); } });
             if (nextPageBtn) nextPageBtn.addEventListener('click', () => { const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage); if (dashboardCurrentPage < totalPages) { dashboardCurrentPage++; renderDashboardTable(); renderDashboardPagination(); } });
+
             dateFilter._hasDashboardListeners = true;
         }
 
@@ -332,7 +464,7 @@ export async function runDashboardLogic(role) {
     setLoading(false);
 }
 
-// Admin Dashboard Initialization
+// Admin Dashboard Initialization (EXPORTED)
 export function initializeAdminDashboard(container) {
     container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -349,7 +481,7 @@ export function initializeAdminDashboard(container) {
     runDashboardLogic('admin');
 }
 
-// Seller Dashboard Initialization
+// Seller Dashboard Initialization (EXPORTED)
 export function initializeSellerDashboard(container) {
     container.innerHTML = `
         <div class="clay-card p-4 mb-8"><div class="flex flex-col sm:flex-row items-center justify-between gap-4"><div class="flex-grow flex flex-wrap items-end gap-4"><div><label for="date-filter" class="block text-sm font-medium mb-1">Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div><div id="custom-date-filters" class="hidden flex-grow sm:flex items-end gap-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="w-full sm:w-auto mt-4 sm:mt-0"><button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button></div></div></div>
