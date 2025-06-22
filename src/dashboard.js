@@ -1,7 +1,7 @@
 // src/dashboard.js
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert, parseDateAsUTC, getWeekRange, getMonthRange, setLoading } from './helpers.js';
-import { showRuleSetDetailsModal } from './rules.js'; // Make sure this is correctly imported and available
+import { showRuleSetDetailsModal } from './rules.js'; // Ensure this is correctly imported and available
 
 // Module-scoped variables (accessible by all functions in this module)
 let dashboardFilteredData = [];
@@ -375,7 +375,7 @@ export async function updateDashboardView() { // EXPORT THIS FUNCTION!
             dateFilter._hasDashboardListeners = true;
         }
 
-        if (role === 'seller') {
+        if (state.profile.role === 'seller') { // Use state.profile.role directly here
             const logSessionButton = document.getElementById('open-log-session-modal');
             if (logSessionButton && !logSessionButton._hasLogSessionListeners) {
                 const logSessionModal = document.getElementById('log-session-modal');
@@ -450,7 +450,7 @@ export async function updateDashboardView() { // EXPORT THIS FUNCTION!
     };
     setupDashboardListeners();
 
-    if (role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) {
+    if (state.profile.role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) { // Use state.profile.role directly here
         const { data: sellers, error } = await _supabase.from('profiles').select('id, full_name').eq('role', 'seller').order('full_name');
         if (sellers) {
             sellerFilter.innerHTML = `<option value="all">All Sellers</option>` + sellers.map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
