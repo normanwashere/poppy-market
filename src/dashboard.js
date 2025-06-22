@@ -200,8 +200,8 @@ async function renderBonusCards(performanceData, filterRange) {
 }
 
 // Function that orchestrates fetching and rendering dashboard data for a given role.
-// This is INTERNAL to dashboard.js, called by the exported initialization functions.
-async function runDashboardLogic(role) {
+// This is EXPORTED from this module.
+export async function updateDashboardView() { // EXPORT THIS FUNCTION!
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
@@ -472,6 +472,7 @@ export function setupDashboardPage() {
         return;
     }
 
+    // Determine which dashboard to initialize based on user role
     if (state.profile.role === 'admin') {
         document.getElementById('dashboard-title').textContent = "Admin Dashboard";
         document.getElementById('dashboard-subtitle').textContent = "Platform-wide performance overview.";
@@ -484,6 +485,7 @@ export function setupDashboardPage() {
 }
 
 // Admin Dashboard Initialization (INTERNAL to dashboard.js)
+// This function needs to be explicitly defined.
 function initializeAdminDashboard(container) {
     container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
