@@ -1,7 +1,7 @@
 // src/dashboard.js
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert, parseDateAsUTC, getWeekRange, getMonthRange, setLoading } from './helpers.js';
-import { showRuleSetDetailsModal } from './rules.js'; // Ensure this is correctly imported and available
+import { showRuleSetDetailsModal } from './rules.js'; // Make sure this is correctly imported and available
 
 // Module-scoped variables (accessible by all functions in this module)
 let dashboardFilteredData = [];
@@ -9,7 +9,7 @@ let dashboardSortConfig = { key: 'session_start_time', direction: 'desc' };
 let dashboardCurrentPage = 1;
 const dashboardEntriesPerPage = 5;
 
-// Helper function to create sortable table headers (internal)
+// Helper function to create sortable table headers (internal to this module)
 function createSortableHeader(label, key, currentSortConfig) {
     const th = document.createElement('th');
     th.className = "p-4 text-left font-semibold uppercase tracking-wider text-xs cursor-pointer";
@@ -25,7 +25,7 @@ function createSortableHeader(label, key, currentSortConfig) {
     return th;
 }
 
-// Function to render the dashboard table content (internal)
+// Function to render the dashboard table content (internal to this module)
 function renderDashboardTable() {
     const tableHead = document.querySelector('#table-container thead tr');
     const tableBody = document.getElementById('table-body');
@@ -71,7 +71,7 @@ function renderDashboardTable() {
     });
 }
 
-// Function to render dashboard pagination controls (internal)
+// Function to render dashboard pagination controls (internal to this module)
 function renderDashboardPagination() {
     const paginationControls = document.getElementById('pagination-controls');
     const pageInfo = document.getElementById('page-info');
@@ -90,12 +90,12 @@ function renderDashboardPagination() {
     nextPageBtn.disabled = dashboardCurrentPage === totalPages;
 }
 
-// Helper to display bonus details in a modal (internal)
+// Helper to display bonus details in a modal (internal to this module)
 async function showBonusDetailsModalForDashboard(ruleId) {
     showRuleSetDetailsModal(ruleId); // Calls the function imported from rules.js
 }
 
-// Function to render bonus/incentive cards (internal)
+// Function to render bonus/incentive cards (internal to this module)
 async function renderBonusCards(performanceData, filterRange) {
     const bonusCardsContainer = document.getElementById('bonus-cards-container');
     if (!bonusCardsContainer) {
@@ -199,8 +199,8 @@ async function renderBonusCards(performanceData, filterRange) {
     window.lucide.createIcons();
 }
 
-// Main function that orchestrates fetching and rendering dashboard data for a given role.
-// This is NOT exported; it's called by initializeAdminDashboard and initializeSellerDashboard
+// Function that orchestrates fetching and rendering dashboard data for a given role.
+// This is INTERNAL to dashboard.js, called by the exported initialization functions.
 async function runDashboardLogic(role) {
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
@@ -462,6 +462,25 @@ async function runDashboardLogic(role) {
     await updateDashboardView();
 
     setLoading(false);
+}
+
+// Exported function that acts as the entry point for the dashboard page setup
+export function setupDashboardPage() {
+    const container = document.getElementById('dashboard-container');
+    if (!container) {
+        console.error("Dashboard container not found in setupDashboardPage.");
+        return;
+    }
+
+    if (state.profile.role === 'admin') {
+        document.getElementById('dashboard-title').textContent = "Admin Dashboard";
+        document.getElementById('dashboard-subtitle').textContent = "Platform-wide performance overview.";
+        initializeAdminDashboard(container); // Call the specific admin dashboard initializer
+    } else {
+        document.getElementById('dashboard-title').textContent = "Dashboard";
+        document.getElementById('dashboard-subtitle').textContent = `Welcome back, ${state.profile.full_name}!`;
+        initializeSellerDashboard(container); // Call the specific seller dashboard initializer
+    }
 }
 
 // Admin Dashboard Initialization (INTERNAL to dashboard.js)
