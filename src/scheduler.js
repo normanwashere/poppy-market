@@ -168,7 +168,7 @@ export async function initializeScheduler() {
                             const { data: liveSessionId, error } = await _supabase.rpc('start_live_session', { p_calendar_event_id: activeEvent.id });
                             if (error) throw error;
                             state.activeLiveSession = { id: liveSessionId, calendar_event_id: activeEvent.id };
-                            showAlert('Success', `Session for ${props.owner_name} is now LIVE!`);
+                            showAlert('Success', 'You are now LIVE!');
                             eventDetailsModal.classList.add('hidden');
                         } catch (err) {
                             showAlert('Error', 'Failed to go live: ' + err.message);
@@ -187,16 +187,33 @@ export async function initializeScheduler() {
                             }
                             const { data: result, error } = await _supabase.rpc('end_live_session', { p_live_session_id: props.current_live_session_id });
                             if (error) throw error;
-                            showAlert('Success', `Live session for ${props.owner_name} force-ended.`);
+
+                            state.activeLiveSession = {
+                                id: props.current_live_session_id,
+                                calendar_event_id: activeEvent.id,
+                                duration: result.live_duration_hours,
+                                branded_items_sold: result.branded_items_sold,
+                                free_size_items_sold: result.free_size_items_sold,
+                                total_revenue: result.total_revenue
+                            };
+
+                            finalSessionDurationEl.textContent = `Total Live Duration: ${state.activeLiveSession.duration.toFixed(1)} hours`;
+                            document.getElementById('finalize-branded-items').value = state.activeLiveSession.branded_items_sold || 0;
+                            document.getElementById('finalize-free-size-items').value = state.activeLiveSession.free_size_items_sold || 0;
+                            document.getElementById('finalize-total-revenue').value = state.activeLiveSession.total_revenue || 0;
+
+
+                            finalizeSessionModal.classList.remove('hidden');
                             eventDetailsModal.classList.add('hidden');
                         } catch (err) {
-                            showAlert('Error', 'Failed to force end session: ' + err.message);
+                            showAlert('Error', 'Failed to end session: ' + err.message);
                         } finally {
-                            btn.disabled = false; btn.textContent = 'Admin Force End Session'; // Restore state
+                            btn.disabled = false;
+                            btn.textContent = 'Submit Sales Data';
                         }
                     };
                 } else if (props.status === 'takeover_pending') {
-                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-700 font-semibold">Takeover requested by: ${props.requested_by_name}</p><button id="approve-takeover-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve Takeover</button>`;
+                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">Takeover requested by: ${props.requested_by_name}</p><button id="approve-takeover-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve Takeover</button>`;
                     document.getElementById('approve-takeover-btn').onclick = async (e) => {
                         const btn = e.currentTarget;
                         btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Approving Takeover...';
@@ -204,7 +221,7 @@ export async function initializeScheduler() {
                         if (updateError) showAlert('Error', 'Failed to approve takeover: ' + updateError.message);
                         else showAlert('Success', 'Takeover approved. Session assigned to new seller.');
                         eventDetailsModal.classList.add('hidden');
-                        btn.disabled = false; btn.textContent = 'Approve Takeover'; // Restore state
+                        btn.disabled = false; btn.textContent = 'Approve Takeover';
                     };
                 } else {
                     eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`;
@@ -227,7 +244,7 @@ export async function initializeScheduler() {
                         } catch (err) {
                             showAlert('Error', 'Failed to go live: ' + err.message);
                         } finally {
-                            btn.disabled = false; btn.textContent = 'Go Live!'; // Restore state
+                            btn.disabled = false; btn.textContent = 'Go Live!';
                         }
                     };
 
@@ -317,9 +334,7 @@ export async function initializeScheduler() {
 
             eventDetailsModal.classList.remove('hidden');
             lucide.createIcons();
-       }, // <--- Add this comma, then close the config object and the Calendar call
-
-    });
+        }
 
         calendarInstance.render(); // This renders the calendar on the page
 
@@ -449,4 +464,4 @@ export async function initializeScheduler() {
             })
             .subscribe();
         channels.push(eventChannel);
-} // Close the initializeScheduler function here, this should be the very last line in the file.
+    } // Close the initializeScheduler function here, this should be the very last line in the file.
