@@ -317,7 +317,9 @@ export async function initializeScheduler() {
 
             eventDetailsModal.classList.remove('hidden');
             lucide.createIcons();
-        }
+       }, // <--- Add this comma, then close the config object and the Calendar call
+
+);
 
         calendarInstance.render(); // This renders the calendar on the page
 
