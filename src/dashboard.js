@@ -198,11 +198,11 @@ async function renderBonusCards(performanceData, filterRange) {
         card.addEventListener('click', handler);
         card._hasRulesetDetailsListener = handler;
     });
-    window.lucide.createIcons(); // Use window.lucide as it's globally loaded
+    window.lucide.createIcons();
 }
 
-// Function that orchestrates fetching and rendering dashboard data
-async function updateDashboardView() {
+// Main function to run dashboard logic, called by setupDashboardPage
+export async function runDashboardLogic(role) {
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
@@ -222,146 +222,10 @@ async function updateDashboardView() {
     const brandedSoldEl = document.getElementById('branded-sold');
     const freeSizeSoldEl = document.getElementById('free-size-sold');
     const loggedEntriesTitle = document.getElementById('logged-entries-title');
-    const bonusCardsContainer = document.getElementById('bonus-cards-container'); // This might be null for seller dashboard
+    const bonusCardsContainer = document.getElementById('bonus-cards-container');
 
-    const baseHourlyPay = state.globalSettings.base_hourly_pay_seller || 0;
-    const defaultCurrencySymbol = state.globalSettings.default_currency_symbol || '₱';
-
-    let query = _supabase.from('logged_sessions').select('*, profiles!seller_id(full_name)');
-
-    if (state.profile.role === 'seller') {
-        query = query.eq('seller_id', profile.id);
-    } else if (sellerFilter) { // Only for admin dashboard
-        const selectedSellerId = sellerFilter.value;
-        if (selectedSellerId !== 'all') {
-            query = query.eq('seller_id', selectedSellerId);
-        }
-    }
-
-    let range = { start: null, end: null };
-    if (dateFilter) {
-        switch (dateFilter.value) {
-            case 'This Week': range = getWeekRange('this'); break;
-            case 'Last Week': range = getWeekRange('last'); break;
-            case 'This Month': range = getMonthRange('this'); break;
-            case 'Custom':
-                if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
-                    range.start = parseDateAsUTC(startDateInput.value);
-                    range.end = parseDateAsUTC(endDateInput.value);
-                    if (range.end) range.end.setUTCHours(23, 59, 59, 999);
-                }
-                break;
-            default: break;
-        }
-    }
-    if (range.start) query = query.gte('session_start_time', range.start.toISOString());
-    if (range.end) query = query.lte('session_start_time', range.end.toISOString());
-
-    const { data, error } = await query;
-    if (error) { showAlert('Error', 'Could not fetch session data: ' + error.message); return; }
-
-    dashboardFilteredData = data;
-
-    const metrics = dashboardFilteredData.reduce((acc, item) => {
-        acc.duration += item.live_duration_hours || 0;
-        acc.basePay += (item.live_duration_hours || 0) * baseHourlyPay;
-        acc.branded_items += item.branded_items_sold || 0;
-        acc.free_size_items += item.free_size_items_sold || 0;
-        acc.total_revenue += item.total_revenue || 0;
-        return acc;
-    }, { duration: 0, basePay: 0, branded_items: 0, free_size_items: 0, total_revenue: 0 });
-
-    let totalBonusAmount = 0;
-    const { data: activeBonusRuleSets, error: ruleSetError } = await _supabase
-        .from('rule_sets')
-        .select(`
-            rules (criteria_field, operator, target_value, payout_type, payout_value)
-        `)
-        .eq('is_active', true)
-        .in('rule_type_id', (await _supabase.from('rule_types').select('id').eq('name', 'Bonus')).data.map(t => t.id))
-        .filter('effective_start_date', 'lte', new Date().toISOString())
-        .or('effective_end_date.is.null,effective_end_date.gte.' + new Date().toISOString());
-
-    if (ruleSetError) {
-        console.error('Error fetching active bonus rule sets for calculation:', ruleSetError.message);
-    } else if (activeBonusRuleSets) {
-        activeBonusRuleSets.forEach(ruleSet => {
-            let allRulesInSetMet = true;
-            let payoutForThisSet = 0;
-
-            if (ruleSet.rules && ruleSet.rules.length > 0) {
-                ruleSet.rules.forEach(rule => {
-                    const metricValue = metrics[rule.criteria_field] || 0;
-                    let ruleMet = false;
-
-                    switch (rule.operator) {
-                        case '>=': ruleMet = (metricValue >= rule.target_value); break;
-                        case '>': ruleMet = (metricValue > rule.target_value); break;
-                        case '=': ruleMet = (metricValue === rule.target_value); break;
-                        case '<': ruleMet = (metricValue < rule.target_value); break;
-                        case '<=': ruleMet = (metricValue <= rule.target_value); break;
-                    }
-
-                    if (!ruleMet) {
-                        allRulesInSetMet = false;
-                    } else {
-                        if (rule.payout_type === 'fixed_amount') {
-                            payoutForThisSet += rule.payout_value;
-                        } else if (rule.payout_type === 'percentage') {
-                            payoutForThisSet += (metrics.total_revenue || 0) * (rule.payout_value / 100);
-                        } else if (rule.payout_type === 'per_unit') {
-                            payoutForThisSet += (metrics.branded_items + metrics.free_size_items) * rule.payout_value;
-                        }
-                    }
-                });
-            } else {
-                allRulesInSetMet = false;
-            }
-
-            if (allRulesInSetMet) {
-                totalBonusAmount += payoutForThisSet;
-            }
-        });
-    }
-
-    // Only attempt to render bonus cards if the container element exists (i.e., it's the admin dashboard)
-    if (bonusCardsContainer) {
-        await renderBonusCards(dashboardFilteredData, range);
-    } else {
-        console.log("Bonus cards container not found (likely seller dashboard), skipping renderBonusCards.");
-    }
-
-    const finalPay = metrics.basePay + totalBonusAmount;
-    const sellerName = (state.profile.role === 'admin' && sellerFilter && sellerFilter.value !== 'all') ? sellerFilter.options[sellerFilter.selectedIndex].text : profile.full_name;
-    const isAllSellers = state.profile.role === 'admin' && sellerFilter && sellerFilter.value === 'all';
-
-    if (finalPayLabel) finalPayLabel.textContent = "Final Pay";
-    if (liveDurationLabel) liveDurationLabel.textContent = "Live Duration";
-    if (basePayLabel) basePayLabel.textContent = "Base Pay";
-    if (brandedSoldLabel) brandedSoldLabel.textContent = "Branded Sold";
-    if (freeSizeSoldLabel) freeSizeSoldLabel.textContent = "Free Size Sold";
-    if (loggedEntriesTitle) loggedEntriesTitle.textContent = isAllSellers ? 'All Logged Entries' : `${sellerName}'s Logged Entries`;
-
-    if (finalPayEl) finalPayEl.textContent = `${defaultCurrencySymbol}${finalPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    if (liveDurationEl) liveDurationEl.innerHTML = `${metrics.duration.toFixed(1)} <span class="text-xl align-baseline">hrs</span>`;
-    if (basePayEl) basePayEl.textContent = `${defaultCurrencySymbol}${metrics.basePay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    if (brandedSoldEl) brandedSoldEl.textContent = metrics.branded_items.toLocaleString();
-    if (freeSizeSoldEl) freeSizeSoldEl.textContent = metrics.free_size_items.toLocaleString();
-
-    dashboardFilteredData.sort((a, b) => {
-        const aValue = a[dashboardSortConfig.key];
-        const bValue = b[dashboardSortConfig.key];
-        if (aValue < bValue) return dashboardSortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return dashboardSortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-    });
-    renderDashboardTable();
-    renderDashboardPagination();
-
-    // Setup event listeners for the dashboard.
-    // Ensure this part is correctly encapsulated.
-    const setupDashboardEventListeners = () => {
-        // Date filter listeners
+    // Attach event listeners for dashboard filters and pagination
+    const setupDashboardListeners = () => {
         if (dateFilter && !dateFilter._hasDashboardListeners) {
             dateFilter.addEventListener('change', () => {
                 const showCustom = dateFilter.value === 'Custom';
@@ -372,23 +236,20 @@ async function updateDashboardView() {
             if (startDateInput) startDateInput.addEventListener('change', () => { dashboardCurrentPage = 1; updateDashboardView(); });
             if (endDateInput) endDateInput.addEventListener('change', () => { dashboardCurrentPage = 1; updateDashboardView(); });
 
-            // Pagination button listeners
             const prevPageBtn = document.getElementById('prev-page');
             const nextPageBtn = document.getElementById('next-page');
             if (prevPageBtn) prevPageBtn.addEventListener('click', () => { if (dashboardCurrentPage > 1) { dashboardCurrentPage--; renderDashboardTable(); renderDashboardPagination(); } });
             if (nextPageBtn) nextPageBtn.addEventListener('click', () => { const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage); if (dashboardCurrentPage < totalPages) { dashboardCurrentPage++; renderDashboardTable(); renderDashboardPagination(); } });
-
             dateFilter._hasDashboardListeners = true;
         }
 
-        // Seller-specific 'Log New Session' button setup
-        if (state.profile.role === 'seller') {
+        if (role === 'seller') {
             const logSessionButton = document.getElementById('open-log-session-modal');
             if (logSessionButton && !logSessionButton._hasLogSessionListeners) {
                 const logSessionModal = document.getElementById('log-session-modal');
                 const sessionLogForm = document.getElementById('session-log-form');
 
-                if (logSessionModal && sessionLogForm) { // Ensure modals and forms exist
+                if (logSessionModal && sessionLogForm) {
                     logSessionButton.addEventListener('click', () => {
                         sessionLogForm.reset();
                         logSessionModal.classList.remove('hidden');
@@ -399,7 +260,7 @@ async function updateDashboardView() {
                         });
                     }
 
-                    if (sessionLogForm._hasLogSubmitListener) { // Prevent double listeners
+                    if (sessionLogForm._hasLogSubmitListener) {
                         sessionLogForm.removeEventListener('submit', sessionLogForm._hasLogSubmitListener);
                     }
                     const handleSubmit = async (e) => {
@@ -449,16 +310,15 @@ async function updateDashboardView() {
                         submitBtn.textContent = 'Submit Log';
                     };
                     sessionLogForm.addEventListener('submit', handleSubmit);
-                    sessionLogForm._hasLogSubmitListener = handleSubmit; // Store flag
+                    sessionLogForm._hasLogSubmitListener = handleSubmit;
                 }
-                logSessionButton._hasLogSessionListeners = true; // Set flag on button
+                logSessionButton._hasLogSessionListeners = true;
             }
         }
     };
-    setupDashboardListeners(); // Call to set up listeners
+    setupDashboardListeners();
 
-    // Admin-specific seller filter setup
-    if (state.profile.role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) {
+    if (role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) {
         const { data: sellers, error } = await _supabase.from('profiles').select('id, full_name').eq('role', 'seller').order('full_name');
         if (sellers) {
             sellerFilter.innerHTML = `<option value="all">All Sellers</option>` + sellers.map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
@@ -467,9 +327,9 @@ async function updateDashboardView() {
         sellerFilter._hasAdminSellerFilterListener = true;
     }
 
-    await updateDashboardView(); // Initial call to fetch data and render dashboard
+    await updateDashboardView();
 
-    setLoading(false); // Hide the global loader only after the dashboard is fully rendered and ready
+    setLoading(false);
 }
 
 // Admin Dashboard Initialization
