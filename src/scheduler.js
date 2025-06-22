@@ -22,9 +22,16 @@ export async function initializeScheduler() {
     const eventTitleInput = document.getElementById('event-title');
     const startTimeInput = document.getElementById('start-time');
     const cancelBookingBtn = document.getElementById('cancel-booking-btn');
+    const eventDetailsTitle = document.getElementById('event-details-title');
+    const eventDetailsTime = document.getElementById('event-details-time');
+    const eventDetailsStatus = document.getElementById('event-details-status');
+    const eventDetailsActions = document.getElementById('event-details-actions');
+    const closeDetailsBtn = document.getElementById('close-details-btn');
     const bookingDurationDisplay = document.getElementById('booking-duration-display');
-    
-    // ... (other element variables)
+    const finalizeSessionModal = document.getElementById('finalize-session-modal');
+    const finalizeSessionForm = document.getElementById('finalize-session-form');
+    const finalSessionDurationEl = document.getElementById('final-session-duration');
+    const cancelFinalizeSessionBtn = document.getElementById('cancel-finalize-session-btn');
 
     const { profile } = state;
     if (!profile) {
@@ -32,8 +39,27 @@ export async function initializeScheduler() {
         return;
     }
 
-    const getEventClassName = (status) => { /* ... (function is correct) ... */ };
-    const formatEvent = (dbEvent) => { /* ... (function is correct) ... */ };
+    const getEventClassName = (status) => {
+        const classMap = { locked: 'event-locked', pending: 'event-pending', takeover: 'event-takeover', takeover_pending: 'event-takeover', live: 'bg-action-pink', ended: 'bg-gray-400' };
+        return classMap[status] || 'event-pending';
+    };
+
+    const formatEvent = (dbEvent) => ({
+        id: dbEvent.id,
+        title: dbEvent.title,
+        start: dbEvent.start_time,
+        end: dbEvent.end_time,
+        classNames: [getEventClassName(dbEvent.status)],
+        extendedProps: {
+            owner_id: dbEvent.owner_id,
+            owner_name: dbEvent.owner_name,
+            status: dbEvent.status,
+            original_owner_name: dbEvent.original_owner_name,
+            requested_by_id: dbEvent.requested_by_id,
+            requested_by_name: dbEvent.requested_by_name,
+            current_live_session_id: dbEvent.current_live_session_id
+        }
+    });
 
     const { data, error } = await _supabase.from('calendar_events').select('*');
     if (error) { showAlert('Error', 'Could not fetch calendar events: ' + error.message); return; }
@@ -48,7 +74,25 @@ export async function initializeScheduler() {
         },
         firstDay: 3,
         dateClick: function (info) {
-            // ... (all the debugging and date checking logic is correct) ...
+            if (state.profile.role !== 'seller') {
+                showAlert('Permission Denied', 'Only sellers can book sessions.');
+                return;
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (info.date < today) {
+                showAlert('Invalid Date', 'You cannot book a session in the past.');
+                return;
+            }
+            const eventsOnDay = calendarInstance.getEvents().filter(event => {
+                return event.start.toDateString() === info.date.toDateString() &&
+                       event.extendedProps.owner_id === state.profile.id &&
+                       event.extendedProps.status !== 'ended';
+            });
+            if (eventsOnDay.length > 0) {
+                showAlert('Already Booked', 'You already have a session on this day.');
+                return;
+            }
 
             const selectedDate = info.date;
             const formattedDate = selectedDate.toLocaleDateString('en-US', {
@@ -64,14 +108,82 @@ export async function initializeScheduler() {
         },
         events: initialEvents,
         eventClick: async (info) => {
-            // ... (your existing eventClick logic is correct) ...
+            const activeEvent = info.event;
+            const props = activeEvent.extendedProps;
+            const isMine = props.owner_id === state.profile.id;
+            currentEventToActOn = activeEvent;
+
+            eventDetailsTitle.textContent = activeEvent.title;
+            eventDetailsTime.textContent = `From ${activeEvent.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} to ${activeEvent.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            eventDetailsStatus.textContent = `Status: ${props.status.charAt(0).toUpperCase() + props.status.slice(1).replace(/_/g, ' ')}`;
+            eventDetailsActions.innerHTML = '';
+
+            if (state.profile.role === 'admin') {
+                if (props.status === 'pending') {
+                    eventDetailsActions.innerHTML = `<button id="approve-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve</button><button id="deny-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Deny</button>`;
+                    document.getElementById('approve-btn').onclick = async (e) => {
+                        const { error } = await _supabase.from('calendar_events').update({ status: 'locked', title: props.owner_name }).eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to approve: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
+                    document.getElementById('deny-btn').onclick = async (e) => {
+                        const { error } = await _supabase.from('calendar_events').delete().eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to deny: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
+                } else if (props.status === 'locked') {
+                    eventDetailsActions.innerHTML = `<button id="force-cancel-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Force Cancellation</button><button id="admin-go-live-btn" class="clay-button clay-button-primary w-full p-4 text-xl">Admin Force Go Live</button>`;
+                    document.getElementById('force-cancel-btn').onclick = async (e) => {
+                         const { error } = await _supabase.from('calendar_events').update({ status: 'takeover', title: 'NEEDS TAKEOVER', original_owner_name: props.owner_name }).eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to cancel: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
+                    document.getElementById('admin-go-live-btn').onclick = async (e) => {
+                        const btn = e.currentTarget;
+                        btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div>';
+                        try {
+                            const { data: liveSessionData, error } = await _supabase.rpc('start_live_session', {
+                                p_calendar_event_id: activeEvent.id,
+                                p_seller_id: props.owner_id
+                            });
+                            if (error) throw error;
+                            state.activeLiveSession = { id: liveSessionData.id, calendar_event_id: activeEvent.id };
+                            showAlert('Success', `Session for ${props.owner_name} is now LIVE!`);
+                            eventDetailsModal.classList.add('hidden');
+                        } catch (err) { showAlert('Error', 'Failed to go live: ' + err.message); } 
+                        finally { btn.disabled = false; btn.textContent = 'Admin Force Go Live'; }
+                    };
+                } else if (props.status === 'live') {
+                    // Logic for admin to end a live session
+                } else if (props.status === 'takeover_pending') {
+                    // Logic for admin to approve a takeover
+                }
+            } else if (state.profile.role === 'seller') {
+                 if (isMine && props.status === 'locked') {
+                    eventDetailsActions.innerHTML = `<button id="cancel-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Cancel My Session</button>`;
+                     document.getElementById('cancel-session-btn').onclick = async () => {
+                        const { error } = await _supabase.from('calendar_events').update({ status: 'takeover', title: 'NEEDS TAKEOVER', original_owner_name: props.owner_name }).eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to cancel: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
+                } else if (!isMine && props.status === 'takeover') {
+                    eventDetailsActions.innerHTML = `<button id="claim-takeover-btn" class="clay-button clay-button-primary w-full p-4 text-xl">Claim This Session</button>`;
+                     document.getElementById('claim-takeover-btn').onclick = async () => {
+                        const { error } = await _supabase.from('calendar_events').update({ status: 'takeover_pending', requested_by_id: profile.id, requested_by_name: profile.full_name, title: `Takeover Pending (${profile.full_name})` }).eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to claim: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
+                } else {
+                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`;
+                }
+            }
+
+            eventDetailsModal.classList.remove('hidden');
+            lucide.createIcons();
         },
     });
 
     calendarInstance.render();
-    
-    // --- FIX: RESTORED EVENT LISTENER LOGIC ---
-    // This block attaches functionality to the modal buttons.
     
     if (bookingForm && !bookingForm._hasBookingFormListener) {
         const handleBookingSubmit = async (e) => {
@@ -116,10 +228,11 @@ export async function initializeScheduler() {
         cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden'));
         cancelBookingBtn._hasCancelBookingListener = true;
     }
-    // ... (other listeners for other modals remain correct) ...
 
-    // --- END OF RESTORED LOGIC ---
-
+    if (closeDetailsBtn && !closeDetailsBtn._hasCloseDetailsListener) {
+        closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden'));
+        closeDetailsBtn._hasCloseDetailsListener = true;
+    }
 
     const eventChannel = _supabase.channel('public:calendar_events')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
