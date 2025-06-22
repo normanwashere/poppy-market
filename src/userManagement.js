@@ -1,14 +1,13 @@
-// src/userManagement.js
+// src/userManagement.js (with debugging logs)
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert } from './helpers.js';
 
 export async function setupUserManagementPage() {
-    if (state.profile.role !== 'admin') { return; } // main.js handles redirect
+    if (state.profile.role !== 'admin') { return; } 
 
     const userListContainer = document.getElementById('user-list-container');
     if (!userListContainer) return;
 
-    // Attach listener for user details modal closure only once
     const closeUserDetailsBtn = document.getElementById('close-user-details-btn');
     if (closeUserDetailsBtn && !closeUserDetailsBtn._hasCloseListener) {
         closeUserDetailsBtn.addEventListener('click', () => {
@@ -19,14 +18,11 @@ export async function setupUserManagementPage() {
 
     await renderUserList();
 
-    // Real-time listener for profiles table changes
     const userChannel = _supabase.channel('public:profiles')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-            renderUserList(); // Re-render the list on any profile change
+            renderUserList();
         })
         .subscribe();
-    
-    // FIX: Push to the 'channels' array directly, not state.channels
     channels.push(userChannel);
 }
 
@@ -35,6 +31,14 @@ export async function renderUserList() {
     if (!container) return;
 
     const { data: users, error } = await _supabase.from('profiles').select('*').neq('role', 'admin').order('full_name');
+
+    // --- START DEBUGGING ---
+    console.log("--- User Management Debug ---");
+    console.log("Query for users completed.");
+    console.log("Error object:", error);
+    console.log("Users data:", users);
+    // --- END DEBUGGING ---
+
     if (error) return showAlert('Error', 'Failed to fetch users: ' + error.message);
 
     if (users.length === 0) {
@@ -59,7 +63,6 @@ export async function renderUserList() {
 
     document.querySelectorAll('.view-user-details').forEach(el => el.addEventListener('click', (e) => showUserDetailsModal(e.currentTarget.dataset.userid)));
     document.querySelectorAll('.approve-user-btn').forEach(button => {
-        // Remove old listeners to prevent duplicates
         if (button._hasApproveListener) {
             button.removeEventListener('click', button._hasApproveListener);
         }
@@ -68,10 +71,9 @@ export async function renderUserList() {
             btn.disabled = true;
             btn.textContent = 'Approving...';
             const userId = btn.dataset.userid;
-            // Call the new RPC function to update role and status
             const { error } = await _supabase.rpc('update_user_role_and_status', {
                 p_user_id: userId,
-                p_new_role: 'seller', // Default to 'seller' role
+                p_new_role: 'seller', 
                 p_new_status: 'approved'
             });
             if (error) showAlert('Error', 'Failed to approve user: ' + error.message);
@@ -80,7 +82,7 @@ export async function renderUserList() {
             btn.textContent = 'Approve';
         };
         button.addEventListener('click', approveHandler);
-        button._hasApproveListener = approveHandler; // Store reference
+        button._hasApproveListener = approveHandler;
     });
 }
 
