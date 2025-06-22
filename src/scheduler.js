@@ -73,7 +73,37 @@ export async function initializeScheduler() {
         },
         firstDay: 3,
         dateClick: function (info) {
-            // ... (dateClick logic is correct)
+            if (state.profile.role !== 'seller') {
+                showAlert('Permission Denied', 'Only sellers can book sessions.');
+                return;
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (info.date < today) {
+                showAlert('Invalid Date', 'You cannot book a session in the past.');
+                return;
+            }
+            const eventsOnDay = calendarInstance.getEvents().filter(event => {
+                return event.start.toDateString() === info.date.toDateString() &&
+                       event.extendedProps.owner_id === state.profile.id &&
+                       event.extendedProps.status !== 'ended';
+            });
+            if (eventsOnDay.length > 0) {
+                showAlert('Already Booked', 'You already have a session on this day.');
+                return;
+            }
+
+            const selectedDate = info.date;
+            const formattedDate = selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+            bookingDateDisplay.textContent = `Booking for: ${formattedDate}`;
+
+            bookingForm.reset();
+            currentSelectionInfo = info;
+            eventTitleInput.value = profile.full_name;
+            bookingDurationDisplay.textContent = state.globalSettings.session_duration_hours || 3;
+            bookingModal.classList.remove('hidden');
         },
         events: initialEvents,
         eventClick: async (info) => {
@@ -101,7 +131,7 @@ export async function initializeScheduler() {
                     state.activeLiveSession = { id: props.current_live_session_id, calendar_event_id: activeEvent.id, duration: result.live_duration_hours };
                     
                     finalSessionDurationEl.textContent = `Total Live Duration: ${state.activeLiveSession.duration.toFixed(2)} hours`;
-                    finalizeSessionForm.reset(); // Reset form for new entry
+                    finalizeSessionForm.reset();
                     finalizeSessionModal.classList.remove('hidden');
                 } catch (err) {
                     showAlert('Error', 'Failed to end session: ' + err.message);
@@ -110,9 +140,27 @@ export async function initializeScheduler() {
 
             if (state.profile.role === 'admin') {
                 if (props.status === 'pending') {
-                    // ... (admin pending logic is correct)
-                } else if (props.status === 'locked') {
-                    // ... (admin locked logic is correct)
+                    eventDetailsActions.innerHTML = `<button id="approve-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve</button><button id="deny-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Deny</button>`;
+                    document.getElementById('approve-btn').onclick = async (e) => {
+                        activeEvent.setProp('classNames', ['event-locked']);
+                        activeEvent.setProp('title', props.owner_name);
+                        activeEvent.setExtendedProp('status', 'locked');
+                        eventDetailsModal.classList.add('hidden');
+                        
+                        const { error } = await _supabase.from('calendar_events').update({ status: 'locked', title: props.owner_name }).eq('id', activeEvent.id);
+                        
+                        if (error) {
+                            showAlert('Error', 'Failed to approve: ' + error.message);
+                            activeEvent.setProp('classNames', ['event-pending']);
+                            activeEvent.setProp('title', `${props.owner_name} (Pending)`);
+                            activeEvent.setExtendedProp('status', 'pending');
+                        }
+                    };
+                    document.getElementById('deny-btn').onclick = async (e) => {
+                        const { error } = await _supabase.from('calendar_events').delete().eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to deny: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
                 } else if (props.status === 'live') {
                     eventDetailsActions.innerHTML = `<button id="admin-end-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Admin Force End Session</button>`;
                     document.getElementById('admin-end-session-btn').onclick = handleEndSession;
@@ -154,19 +202,40 @@ export async function initializeScheduler() {
                     };
                     
                     const goLiveBtn = document.getElementById('go-live-btn');
-                    if (goLiveBtn) { /* ... go live logic is correct ... */ }
-
+                    if (goLiveBtn) {
+                        goLiveBtn.onclick = async () => {
+                            const btn = goLiveBtn;
+                            btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div>';
+                            try {
+                                const { data: liveSessionData, error } = await _supabase.rpc('start_live_session', {
+                                    p_calendar_event_id: activeEvent.id,
+                                    p_seller_id: state.profile.id
+                                });
+                                if (error) throw error;
+                                state.activeLiveSession = { id: liveSessionData.id, calendar_event_id: activeEvent.id };
+                                showAlert('Success', 'You are now LIVE!');
+                                eventDetailsModal.classList.add('hidden');
+                            } catch (err) {
+                                showAlert('Error', 'Failed to go live: ' + err.message);
+                            } finally {
+                                btn.disabled = false; btn.textContent = 'Go Live';
+                            }
+                        };
+                    }
                 } else if (isMine && props.status === 'live') {
                     eventDetailsActions.innerHTML = `<button id="end-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">End My Session</button>`;
                     document.getElementById('end-session-btn').onclick = handleEndSession;
-
                 } else if (!isMine && props.status === 'takeover') {
-                    // ... (takeover logic is correct)
+                    eventDetailsActions.innerHTML = `<button id="claim-takeover-btn" class="clay-button clay-button-primary w-full p-4 text-xl">Claim This Session</button>`;
+                     document.getElementById('claim-takeover-btn').onclick = async () => {
+                        const { error } = await _supabase.from('calendar_events').update({ status: 'takeover_pending', requested_by_id: profile.id, requested_by_name: profile.full_name, title: `Takeover Pending (${profile.full_name})` }).eq('id', activeEvent.id);
+                        if (error) showAlert('Error', 'Failed to claim: ' + error.message);
+                        eventDetailsModal.classList.add('hidden');
+                    };
                 } else {
                     eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`;
                 }
             }
-
             eventDetailsModal.classList.remove('hidden');
             lucide.createIcons();
         },
@@ -174,17 +243,60 @@ export async function initializeScheduler() {
 
     calendarInstance.render();
     
-    // Listeners for Booking Modal
-    if (bookingForm && !bookingForm._hasBookingFormListener) { /* ... no changes ... */ }
-    if (cancelBookingBtn && !cancelBookingBtn._hasCancelBookingListener) { /* ... no changes ... */ }
+    if (bookingForm && !bookingForm._hasBookingFormListener) {
+        const handleBookingSubmit = async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Requesting...';
+            const startTimeValue = startTimeInput.value;
+            const defaultSessionDurationHours = state.globalSettings.session_duration_hours || 3;
 
-    // Listener for Event Details Modal
+            if (startTimeValue && currentSelectionInfo) {
+                const [hours, minutes] = startTimeInput.value.split(':');
+                const startDateTime = new Date(currentSelectionInfo.date);
+                startDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                const endDateTime = new Date(startDateTime.getTime() + (defaultSessionDurationHours * 60 * 60 * 1000));
+
+                if (endDateTime.getDate() !== startDateTime.getDate()) {
+                    showAlert('Invalid Time', 'Booking cannot cross over to the next day. Please choose an earlier start time.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Request Booking';
+                    return; 
+                }
+
+                const newEvent = {
+                    title: `${state.profile.full_name} (Pending)`,
+                    start_time: startDateTime.toISOString(),
+                    end_time: endDateTime.toISOString(),
+                    status: 'pending',
+                    owner_id: state.profile.id,
+                    owner_name: state.profile.full_name,
+                };
+                const { error } = await _supabase.from('calendar_events').insert(newEvent);
+                if (error) showAlert('Error', 'Could not book session: ' + error.message);
+                else {
+                    bookingModal.classList.add('hidden');
+                    showAlert('Success', 'Booking request sent for approval!');
+                }
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Request Booking';
+        };
+        bookingForm.addEventListener('submit', handleBookingSubmit);
+        bookingForm._hasBookingFormListener = handleBookingSubmit;
+    }
+
+    if (cancelBookingBtn && !cancelBookingBtn._hasCancelBookingListener) {
+        cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden'));
+        cancelBookingBtn._hasCancelBookingListener = true;
+    }
+
     if (closeDetailsBtn && !closeDetailsBtn._hasCloseDetailsListener) {
         closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden'));
         closeDetailsBtn._hasCloseDetailsListener = true;
     }
 
-    // Listeners for Finalize Session Modal
     if (finalizeSessionForm && !finalizeSessionForm._hasFinalizeListener) {
         const handleFinalizeSubmit = async (e) => {
             e.preventDefault();
@@ -213,14 +325,25 @@ export async function initializeScheduler() {
         finalizeSessionForm.addEventListener('submit', handleFinalizeSubmit);
         finalizeSessionForm._hasFinalizeListener = true;
     }
+
     if (cancelFinalizeSessionBtn && !cancelFinalizeSessionBtn._hasCancelListener) {
         cancelFinalizeSessionBtn.addEventListener('click', () => finalizeSessionModal.classList.add('hidden'));
         cancelFinalizeSessionBtn._hasCancelListener = true;
     }
 
-    // Real-time channel setup
     const eventChannel = _supabase.channel('public:calendar_events')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => { /* ... no changes ... */ })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
+            if (payload.eventType === 'INSERT') {
+                calendarInstance.addEvent(formatEvent(payload.new));
+            } else if (payload.eventType === 'UPDATE') {
+                let existingEvent = calendarInstance.getEventById(payload.new.id);
+                if (existingEvent) existingEvent.remove();
+                calendarInstance.addEvent(formatEvent(payload.new));
+            } else if (payload.eventType === 'DELETE') {
+                let existingEvent = calendarInstance.getEventById(payload.old.id);
+                if (existingEvent) existingEvent.remove();
+            }
+        })
         .subscribe();
     channels.push(eventChannel);
 }
