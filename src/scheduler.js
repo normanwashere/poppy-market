@@ -1,4 +1,4 @@
-// src/scheduler.js
+// src/scheduler.js (with debugging logs)
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert } from './helpers.js';
 
@@ -17,13 +17,26 @@ export async function initializeScheduler() {
 
     const bookingModal = document.getElementById('booking-modal');
     const eventDetailsModal = document.getElementById('event-details-modal');
-    // ... (the rest of your variable declarations)
+    const bookingForm = document.getElementById('booking-form');
+    const eventTitleInput = document.getElementById('event-title');
+    const startTimeInput = document.getElementById('start-time');
+    const cancelBookingBtn = document.getElementById('cancel-booking-btn');
+    const eventDetailsTitle = document.getElementById('event-details-title');
+    const eventDetailsTime = document.getElementById('event-details-time');
+    const eventDetailsStatus = document.getElementById('event-details-status');
+    const eventDetailsActions = document.getElementById('event-details-actions');
+    const closeDetailsBtn = document.getElementById('close-details-btn');
+    const bookingDurationDisplay = document.getElementById('booking-duration-display');
     const finalizeSessionModal = document.getElementById('finalize-session-modal');
     const finalizeSessionForm = document.getElementById('finalize-session-form');
     const finalSessionDurationEl = document.getElementById('final-session-duration');
     const cancelFinalizeSessionBtn = document.getElementById('cancel-finalize-session-btn');
-    
+
     const { profile } = state;
+    if (!profile) {
+        console.error("DEBUG: No profile found in state. Cannot initialize scheduler correctly.");
+        return;
+    }
 
     const getEventClassName = (status) => {
         const classMap = { locked: 'event-locked', pending: 'event-pending', takeover: 'event-takeover', takeover_pending: 'event-takeover', live: 'bg-action-pink', ended: 'bg-gray-400' };
@@ -60,7 +73,50 @@ export async function initializeScheduler() {
         },
         firstDay: 3,
         dateClick: function (info) {
-            // ... (your existing dateClick logic)
+            // --- START DEBUGGING ---
+            console.log("--- Calendar Click Log ---");
+            console.log("1. dateClick event fired for date:", info.date);
+
+            // Check 1: Role Check
+            console.log("2. Checking user role. Role is:", state.profile.role);
+            if (state.profile.role !== 'seller') {
+                console.log("   -> FAILED: User is not a seller. Aborting.");
+                showAlert('Permission Denied', 'Only sellers can book sessions.');
+                return;
+            }
+
+            // Check 2: Past Date Check
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            console.log("3. Checking if date is in the past. Clicked date:", info.date, "Today:", today);
+            if (info.date < today) {
+                console.log("   -> FAILED: Clicked date is in the past. Aborting.");
+                showAlert('Invalid Date', 'You cannot book a session in the past.');
+                return;
+            }
+
+            // Check 3: Existing Event Check
+            console.log("4. Checking for existing events on this day for user ID:", state.profile.id);
+            const eventsOnDay = calendarInstance.getEvents().filter(event => {
+                return event.start.toDateString() === info.date.toDateString() &&
+                       event.extendedProps.owner_id === state.profile.id &&
+                       event.extendedProps.status !== 'ended';
+            });
+            console.log("   -> Found", eventsOnDay.length, "existing event(s).");
+            if (eventsOnDay.length > 0) {
+                console.log("   -> FAILED: User already has a booking on this day. Aborting.");
+                showAlert('Already Booked', 'You already have a session on this day. Please choose another day or manage your existing booking.');
+                return;
+            }
+
+            console.log("5. SUCCESS: All checks passed. Showing booking modal.");
+            // --- END DEBUGGING ---
+            
+            bookingForm.reset();
+            currentSelectionInfo = info;
+            eventTitleInput.value = profile.full_name;
+            bookingDurationDisplay.textContent = state.globalSettings.session_duration_hours || 3;
+            bookingModal.classList.remove('hidden');
         },
         events: initialEvents,
         eventClick: async (info) => {
