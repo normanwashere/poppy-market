@@ -1,7 +1,7 @@
 // src/dashboard.js
 import { _supabase, state, channels } from './supabaseClient.js';
 import { showAlert, parseDateAsUTC, getWeekRange, getMonthRange, setLoading } from './helpers.js';
-import { showRuleSetDetailsModal } from './rules.js'; // Ensure this is correctly imported and available
+import { showRuleSetDetailsModal } from './rules.js'; // Make sure this is correctly imported and available
 
 // Module-scoped variables (accessible by all functions in this module)
 let dashboardFilteredData = [];
@@ -9,9 +9,199 @@ let dashboardSortConfig = { key: 'session_start_time', direction: 'desc' };
 let dashboardCurrentPage = 1;
 const dashboardEntriesPerPage = 5;
 
+// Helper function to create sortable table headers (internal to this module)
+function createSortableHeader(label, key, currentSortConfig) {
+    const th = document.createElement('th');
+    th.className = "p-4 text-left font-semibold uppercase tracking-wider text-xs cursor-pointer";
+    th.dataset.key = key;
+    const iconContainer = currentSortConfig.key === key ? `<i data-lucide="${currentSortConfig.direction === 'asc' ? 'chevron-up' : 'chevron-down'}" class="h-4 w-4 ml-1"></i>` : '<div class="h-4 w-4 ml-1 opacity-20"><i data-lucide="chevron-down"></i></div>';
+    th.innerHTML = `<div class="flex items-center">${label}${iconContainer}</div>`;
+    th.addEventListener('click', () => {
+        dashboardSortConfig.direction = (currentSortConfig.key === key && currentSortConfig.direction === 'asc') ? 'desc' : 'asc';
+        dashboardSortConfig.key = key;
+        dashboardCurrentPage = 1;
+        updateDashboardView(); // Call the update function to re-render
+    });
+    return th;
+}
+
+// Function to render the dashboard table content (internal to this module)
+function renderDashboardTable() {
+    const tableHead = document.querySelector('#table-container thead tr');
+    const tableBody = document.getElementById('table-body');
+    const noEntriesMessage = document.getElementById('no-entries');
+
+    if (!tableHead || !tableBody || !noEntriesMessage) {
+        console.error("Dashboard table elements not found in renderDashboardTable.");
+        return;
+    }
+
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '';
+    const headers = [
+        { label: 'Date', key: 'session_start_time' },
+        { label: 'Duration', key: 'live_duration_hours' },
+        { label: 'Branded', key: 'branded_items_sold' },
+        { label: 'Free Size', key: 'free_size_items_sold' }
+    ];
+
+    if (state.profile && state.profile.role === 'admin') {
+        headers.splice(1, 0, { label: 'Seller', key: 'profiles.full_name' });
+    }
+
+    headers.forEach(h => tableHead.appendChild(createSortableHeader(h.label, h.key, dashboardSortConfig)));
+
+    const startIndex = (dashboardCurrentPage - 1) * dashboardEntriesPerPage;
+    const paginatedData = dashboardFilteredData.slice(startIndex, startIndex + dashboardEntriesPerPage);
+
+    noEntriesMessage.style.display = paginatedData.length === 0 ? 'block' : 'none';
+
+    paginatedData.forEach((item, index) => {
+        const itemDate = new Date(item.session_start_time);
+        const row = document.createElement('tr');
+        row.className = 'transition-colors duration-200 hover:bg-primary-lavender/60 ' + (index % 2 !== 0 ? 'bg-[rgba(0,0,0,0.04)]' : '');
+        row.innerHTML = `
+            <td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+            ${state.profile && state.profile.role === 'admin' ? `<td class="p-4 whitespace-nowrap">${item.profiles.full_name}</td>` : ''}
+            <td class="p-4 whitespace-nowrap">${item.live_duration_hours !== null ? item.live_duration_hours.toFixed(2) : 'N/A'} hrs</td>
+            <td class="p-4 whitespace-nowrap">${item.branded_items_sold !== null ? item.branded_items_sold : 'N/A'}</td>
+            <td class="p-4 whitespace-nowrap">${item.free_size_items_sold !== null ? item.free_size_items_sold : 'N/A'}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to render dashboard pagination controls (internal to this module)
+function renderDashboardPagination() {
+    const paginationControls = document.getElementById('pagination-controls');
+    const pageInfo = document.getElementById('page-info');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+
+    if (!paginationControls || !pageInfo || !prevPageBtn || !nextPageBtn) {
+        console.error("Dashboard pagination elements not found in renderDashboardPagination.");
+        return;
+    }
+
+    const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage);
+    paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
+    pageInfo.innerHTML = `Page <strong>${dashboardCurrentPage}</strong> of <strong>${totalPages}</strong>`;
+    prevPageBtn.disabled = dashboardCurrentPage === 1;
+    nextPageBtn.disabled = dashboardCurrentPage === totalPages;
+}
+
+// Helper to display bonus details in a modal (internal to this module)
+async function showBonusDetailsModalForDashboard(ruleId) {
+    showRuleSetDetailsModal(ruleId); // Calls the function imported from rules.js
+}
+
+// Function to render bonus/incentive cards (internal to this module)
+async function renderBonusCards(performanceData, filterRange) {
+    const bonusCardsContainer = document.getElementById('bonus-cards-container');
+    if (!bonusCardsContainer) {
+        console.error("Bonus cards container not found in renderBonusCards.");
+        return;
+    }
+
+    const { data: bonusRuleSets, error: rsError } = await _supabase
+        .from('rule_sets')
+        .select(`id, name, description, effective_start_date, effective_end_date, is_active,
+                     rule_types(name), rules (id, rule_name, criteria_field, operator, target_value, payout_type, payout_value)`)
+        .eq('is_active', true)
+        .in('rule_type_id', (await _supabase.from('rule_types').select('id').eq('name', 'Bonus')).data.map(t => t.id))
+        .filter('effective_start_date', 'lte', new Date().toISOString())
+        .or('effective_end_date.is.null,effective_end_date.gte.' + new Date().toISOString());
+
+    if (rsError) {
+        console.error('Error fetching bonus rule sets for calculation:', rsError.message);
+        bonusCardsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Error loading incentives.</p>`;
+        return;
+    }
+
+    if (bonusRuleSets.length === 0) {
+        bonusCardsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">No active bonus incentives at the moment.</p>`;
+        return;
+    }
+
+    const metrics = performanceData.reduce((acc, item) => {
+        acc.live_hours = (acc.live_hours || 0) + (item.live_duration_hours || 0);
+        acc.branded_items = (acc.branded_items || 0) + (item.branded_items_sold || 0);
+        acc.free_size_items = (acc.free_size_items || 0) + (item.free_size_items_sold || 0);
+        acc.total_revenue = (acc.total_revenue || 0) + (item.total_revenue || 0);
+        return acc;
+    }, { duration: 0, basePay: 0, branded_items: 0, free_size_items: 0, total_revenue: 0 });
+
+    bonusCardsContainer.innerHTML = bonusRuleSets.map(ruleSet => {
+        let totalEarnedInSet = 0;
+        let allRulesInSetMet = true;
+
+        if (ruleSet.rules && ruleSet.rules.length > 0) {
+            ruleSet.rules.forEach(rule => {
+                const metricValue = metrics[rule.criteria_field] || 0;
+                let ruleMet = false;
+
+                switch (rule.operator) {
+                    case '>=': ruleMet = (metricValue >= rule.target_value); break;
+                    case '>': ruleMet = (metricValue > rule.target_value); break;
+                    case '=': ruleMet = (metricValue === rule.target_value); break;
+                    case '<': ruleMet = (metricValue < rule.target_value); break;
+                    case '<=': ruleMet = (metricValue <= rule.target_value); break;
+                }
+
+                if (!ruleMet) {
+                    allRulesInSetMet = false;
+                } else {
+                    if (rule.payout_type === 'fixed_amount') {
+                        payoutForThisSet += rule.payout_value;
+                    } else if (rule.payout_type === 'percentage') {
+                        payoutForThisSet += (metrics.total_revenue || 0) * (rule.payout_value / 100);
+                    } else if (rule.payout_type === 'per_unit') {
+                        payoutForThisSet += (metrics.branded_items + metrics.free_size_items) * rule.payout_value;
+                    }
+                }
+            });
+        } else {
+            allRulesInSetMet = false;
+        }
+
+        if (allRulesInSetMet) {
+            totalEarnedInSet += payoutForThisSet;
+        }
+
+        return `
+            <div class="clay-card p-4 cursor-pointer" data-rulesetid="${ruleSet.id}">
+                <div class="flex justify-between items-start">
+                    <h4 class="font-playfair font-bold text-lg mb-2">${ruleSet.name}</h4>
+                    <div class="tooltip-container">
+                        <i data-lucide="info" class="h-5 w-5 text-gray-500"></i>
+                        <span class="tooltip-text">
+                            Type: ${ruleSet.rule_types.name}<br>
+                            Status: ${ruleSet.is_active ? 'Active' : 'Inactive'}<br>
+                            Effective: ${new Date(ruleSet.effective_start_date).toLocaleDateString()} to ${ruleSet.effective_end_date ? new Date(ruleSet.effective_end_date).toLocaleDateString() : 'Indefinite'}<br>
+                            Rules: ${ruleSet.rules && ruleSet.rules.length > 0 ? ruleSet.rules.map(rule => `${rule.rule_name} (${rule.criteria_field.replace(/_/g, ' ')} ${rule.operator} ${rule.target_value})`).join('<br>') : 'No rules defined.'}
+                        </span>
+                    </div>
+                </div>
+                <p class="font-bold text-3xl" style="color: #831843;">${state.globalSettings.default_currency_symbol || '₱'}${totalEarnedInSet.toFixed(2)}</p>
+                <p class="text-xs text-gray-500 mt-1">${ruleSet.rule_types.name} Incentive</p>
+            </div>
+        `;
+    }).join('');
+
+    document.querySelectorAll('[data-rulesetid]').forEach(card => {
+        if (card._hasRulesetDetailsListener) {
+            card.removeEventListener('click', card._hasRulesetDetailsListener);
+        }
+        const handler = (e) => showBonusDetailsModalForDashboard(e.currentTarget.dataset.rulesetid);
+        card.addEventListener('click', handler);
+        card._hasRulesetDetailsListener = handler;
+    });
+    window.lucide.createIcons();
+}
+
 // Function that orchestrates fetching and rendering dashboard data for a given role.
-// Defined at module scope, so initializeAdminDashboard and initializeSellerDashboard can access it.
-async function runDashboardLogic(role) {
+// This is EXPORTED from this module.
+export async function updateDashboardView() { // EXPORT THIS FUNCTION!
     const { profile } = state;
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
@@ -274,7 +464,28 @@ async function runDashboardLogic(role) {
     setLoading(false);
 }
 
+// Exported function that acts as the entry point for the dashboard page setup
+export function setupDashboardPage() {
+    const container = document.getElementById('dashboard-container');
+    if (!container) {
+        console.error("Dashboard container not found in setupDashboardPage.");
+        return;
+    }
+
+    // Determine which dashboard to initialize based on user role
+    if (state.profile.role === 'admin') {
+        document.getElementById('dashboard-title').textContent = "Admin Dashboard";
+        document.getElementById('dashboard-subtitle').textContent = "Platform-wide performance overview.";
+        initializeAdminDashboard(container); // Call the specific admin dashboard initializer
+    } else {
+        document.getElementById('dashboard-title').textContent = "Dashboard";
+        document.getElementById('dashboard-subtitle').textContent = `Welcome back, ${state.profile.full_name}!`;
+        initializeSellerDashboard(container); // Call the specific seller dashboard initializer
+    }
+}
+
 // Admin Dashboard Initialization (INTERNAL to dashboard.js)
+// This function needs to be explicitly defined.
 function initializeAdminDashboard(container) {
     container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
