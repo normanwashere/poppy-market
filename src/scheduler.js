@@ -446,4 +446,4 @@ export async function initializeScheduler() {
             })
             .subscribe();
         channels.push(eventChannel);
-}
+
