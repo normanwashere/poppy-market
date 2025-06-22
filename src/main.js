@@ -11,8 +11,7 @@ import { setupBonusReviewPage, showReviewModal } from './bonusReview.js';
 import { setupGlobalSettingsPage, renderGlobalSettings, updateGlobalSetting } from './settings.js';
 import { setupUserProfilePage } from './userProfile.js';
 
-// Explicitly import setupDashboardPage from dashboard.js
-import { setupDashboardPage } from './dashboard.js'; // This line is crucial for the error fix
+import { setupDashboardPage } from './dashboard.js';
 
 // Global DOM Elements (access from main.js as they are fixed on index.html)
 const loader = document.getElementById('loader');
@@ -26,11 +25,10 @@ const profileName = document.getElementById('profile-name');
 
 // Expose state and core functions globally for direct calls from other modules if needed,
 // though passing them as arguments is often cleaner for specific functions.
-window.state = state; // Expose global state
-window.showAlert = showAlert; // Expose showAlert global
-window.setLoading = setLoading; // Expose setLoading global
+window.state = state;
+window.showAlert = showAlert;
+window.setLoading = setLoading;
 window.lucide = lucide; // Expose Lucide global function (assuming it's loaded from index.html)
-
 
 // Helper to fetch global settings (still resides here as it's a core global operation for app state)
 async function fetchGlobalSettings() {
@@ -66,7 +64,6 @@ async function fetchGlobalSettings() {
     console.log('Global Settings Loaded:', state.globalSettings);
 }
 
-
 // Central function to show pages
 export function showPage(pageName) {
     // Unsubscribe from all existing channels before showing a new page
@@ -96,8 +93,8 @@ export function showPage(pageName) {
     switch (pageName) {
         case 'login': setupLoginPage(); break;
         case 'signup': setupSignupPage(); break;
-        case 'dashboard': setupDashboardPage(); break; // Correctly imported from dashboard.js
-        case 'scheduler': initializeScheduler(); break; // Ensure correct function name
+        case 'dashboard': setupDashboardPage(); break;
+        case 'scheduler': initializeScheduler(); break;
         case 'userManagement': setupUserManagementPage(); break;
         case 'bonusRules': setupBonusRulesPage(); break;
         case 'bonusReview': setupBonusReviewPage(); break;
@@ -160,7 +157,7 @@ async function checkUserSession() {
     // setLoading(false) is now handled by handleLogout or specific error paths within this function.
 }
 
-// Central function to handle logout
+// Central function to handle logout (MODIFIED: Added 'export' keyword here)
 export async function handleLogout(isInitial = false) {
     if (!isInitial) {
         const { error } = await _supabase.auth.signOut();
