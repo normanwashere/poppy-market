@@ -78,35 +78,47 @@ function renderDashboardPagination() {
 }
 
 async function renderBonusCards() {
-    // This function can remain largely the same, but ensure it correctly handles the data
     // ... (Your existing renderBonusCards logic)
 }
 
-// FIX: This is the main function that fetches and updates data.
 export async function updateDashboardView() {
     setLoading(true);
     const { profile } = state;
+    if (!profile) {
+        console.error("updateDashboardView called before profile was loaded.");
+        setLoading(false);
+        return;
+    }
+    
     const sellerFilter = document.getElementById('seller-filter');
     const dateFilter = document.getElementById('date-filter');
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
-    const finalPayEl = document.getElementById('final-pay');
-    // ... (get other DOM elements)
-
-    const baseHourlyPay = state.globalSettings.base_hourly_pay_seller || 0;
-    const defaultCurrencySymbol = state.globalSettings.default_currency_symbol || '₱';
-
+    
     let query = _supabase.from('logged_sessions').select('*, profiles:seller_id(full_name)');
 
     if (profile.role === 'seller') {
         query = query.eq('seller_id', profile.id);
-    } else if (sellerFilter && sellerFilter.value !== 'all') {
+    } 
+    // FIX: Add a check to ensure sellerFilter.value is not an empty string
+    else if (profile.role === 'admin' && sellerFilter && sellerFilter.value && sellerFilter.value !== 'all') {
         query = query.eq('seller_id', sellerFilter.value);
     }
 
     let range = { start: null, end: null };
     if (dateFilter) {
-        // ... (your existing date filter logic)
+        switch (dateFilter.value) {
+            case 'This Week': range = getWeekRange('this'); break;
+            case 'Last Week': range = getWeekRange('last'); break;
+            case 'This Month': range = getMonthRange('this'); break;
+            case 'Custom':
+                if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+                    range.start = parseDateAsUTC(startDateInput.value);
+                    range.end = parseDateAsUTC(endDateInput.value);
+                    if (range.end) range.end.setUTCHours(23, 59, 59, 999);
+                }
+                break;
+        }
     }
 
     if (range.start) query = query.gte('session_start_time', range.start.toISOString());
@@ -122,7 +134,7 @@ export async function updateDashboardView() {
 
     dashboardFilteredData = data || [];
     
-    // ... (Your existing logic for calculating metrics and final pay)
+    // ... (Your existing logic for calculating metrics and rendering UI)
 
     renderDashboardTable();
     renderDashboardPagination();
@@ -131,7 +143,6 @@ export async function updateDashboardView() {
     setLoading(false);
 }
 
-// FIX: A new function to set up listeners only ONCE.
 function setupDashboardListeners() {
     const dateFilter = document.getElementById('date-filter');
     const startDateInput = document.getElementById('start-date');
@@ -170,7 +181,6 @@ function setupDashboardListeners() {
     }
 }
 
-// FIX: Simplified admin dashboard initialization
 function initializeAdminDashboard(container) {
     container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"><div><label for="seller-filter" class="block text-sm font-medium mb-1">Filter by Seller</label><select id="seller-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></select></div><div><label for="date-filter" class="block text-sm font-medium mb-1">Filter by Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div></div><div id="custom-date-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start Date</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End Date</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div>
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -188,7 +198,6 @@ function initializeAdminDashboard(container) {
     updateDashboardView();
 }
 
-// FIX: Simplified seller dashboard initialization
 function initializeSellerDashboard(container) {
     container.innerHTML = `<div class="clay-card p-4 mb-8"><div class="flex flex-col sm:flex-row items-center justify-between gap-4"><div class="flex-grow flex flex-wrap items-end gap-4"><div><label for="date-filter" class="block text-sm font-medium mb-1">Date Range</label><select id="date-filter" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"><option>All Time</option><option>This Week</option><option>Last Week</option><option>This Month</option><option>Custom</option></select></div><div id="custom-date-filters" class="hidden flex-grow sm:flex items-end gap-4"><div><label for="start-date" class="block text-sm font-medium mb-1">Start</label><input type="date" id="start-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div><div><label for="end-date" class="block text-sm font-medium mb-1">End</label><input type="date" id="end-date" class="clay-inset w-full p-3 text-lg appearance-none focus:outline-none"></div></div></div><div class="w-full sm:w-auto mt-4 sm:mt-0"><button id="open-log-session-modal" class="clay-button clay-button-primary w-full px-6 py-4 text-lg">Log New Session</button></div></div></div>
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -206,7 +215,6 @@ function initializeSellerDashboard(container) {
     updateDashboardView();
 }
 
-// This is the main entry point for the dashboard page, exported for use in main.js
 export function setupDashboardPage() {
     const container = document.getElementById('dashboard-container');
     if (!container) return;
