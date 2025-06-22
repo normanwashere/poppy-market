@@ -1,6 +1,6 @@
 // src/scheduler.js
 import { _supabase, state, channels } from './supabaseClient.js';
-import { showAlert } from './helpers.js';
+import { showAlert } from './helpers.js'; // Assuming showAlert is available globally or passed
 
 let calendarInstance = null; // Declare at module scope
 let currentSelectionInfo = null; // Declare at module scope
@@ -9,7 +9,6 @@ let currentEventToActOn = null; // Declare at module scope
 export async function initializeScheduler() {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
-    // Destroy existing calendar instance before creating a new one to prevent duplicates/errors
     if (calendarInstance) { calendarInstance.destroy(); calendarInstance = null; }
 
     const bookingModal = document.getElementById('booking-modal');
@@ -315,7 +314,7 @@ export async function initializeScheduler() {
                 const overlappingEvents = calendarInstance.getEvents().filter(event => {
                     const eventStart = event.start.getTime();
                     const eventEnd = event.end.getTime();
-                    return event.extendedProps.owner_id === state.profile.id && event.extendedProps.status !== 'ended' && // MODIFIED: Use state.profile.id
+                    return event.extendedProps.owner_id === state.profile.id && event.extendedProps.status !== 'ended' &&
                         ((startDateTime.getTime() < eventEnd && endDateTime.getTime() > eventStart));
                 });
 
@@ -327,79 +326,10 @@ export async function initializeScheduler() {
                 }
 
                 const newEvent = {
-                    title: `${state.profile.full_name} (Pending)`, // MODIFIED: Use state.profile.full_name
+                    title: `${state.profile.full_name} (Pending)`,
                     start_time: startDateTime.toISOString(),
                     end_time: endDateTime.toISOString(),
                     status: 'pending',
-                    owner_id: state.profile.id, // MODIFIED: Use state.profile.id
-                    owner_name: state.profile.full_name, // MODIFIED: Use state.profile.full_name
+                    owner_id: state.profile.id,
+                    owner_name: state.profile.full_name,
                 };
-
-                const { error } = await _supabase.from('calendar_events').insert(newEvent);
-                if (error) showAlert('Error', 'Could not book session: ' + error.message);
-                else {
-                    bookingModal.classList.add('hidden');
-                    showAlert('Success', 'Booking request sent for approval!');
-                }
-            }
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Request Booking';
-        });
-        cancelBookingBtn.addEventListener('click', () => bookingModal.classList.add('hidden'));
-        closeDetailsBtn.addEventListener('click', () => eventDetailsModal.classList.add('hidden'));
-
-        // Listener for Finalize Session Modal
-        finalizeSessionForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
-
-            const branded = parseInt(document.getElementById('finalize-branded-items').value) || 0;
-            const freeSize = parseInt(document.getElementById('finalize-free-size-items').value) || 0;
-            const totalRevenue = parseFloat(document.getElementById('finalize-total-revenue').value) || 0.00;
-            const sessionNotes = document.getElementById('finalize-session-notes').value.trim();
-
-            try {
-                const { error } = await _supabase.rpc('finalize_logged_session', {
-                    p_live_session_id: state.activeLiveSession.id,
-                    p_branded_items_sold: branded,
-                    p_free_size_items_sold: freeSize,
-                    p_total_revenue: totalRevenue,
-                    p_session_notes: sessionNotes || null,
-                    p_seller_id: state.profile.id
-                });
-                if (error) throw error;
-                showAlert('Success', 'Sales data submitted successfully!');
-                finalizeSessionModal.classList.add('hidden');
-                state.activeLiveSession = null;
-            } catch (err) {
-                showAlert('Error', 'Failed to submit sales data: ' + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Sales Data';
-            }
-        });
-
-        cancelFinalizeSessionBtn.addEventListener('click', () => {
-            finalizeSessionModal.classList.add('hidden');
-            state.activeLiveSession = null;
-        });
-
-        // Real-time listener for calendar events
-        const eventChannel = _supabase.channel('public:calendar_events')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, payload => {
-                if (payload.eventType === 'INSERT') {
-                    calendarInstance.addEvent(formatEvent(payload.new));
-                } else if (payload.eventType === 'UPDATE') {
-                    let existingEvent = calendarInstance.getEventById(payload.new.id);
-                    if (existingEvent) existingEvent.remove();
-                    calendarInstance.addEvent(formatEvent(payload.new));
-                } else if (payload.eventType === 'DELETE') {
-                    let existingEvent = calendarInstance.getEventById(payload.old.id);
-                    if (existingEvent) existingEvent.remove();
-                }
-            })
-            .subscribe();
-        channels.push(eventChannel);
-    }
