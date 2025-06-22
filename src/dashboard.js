@@ -15,7 +15,7 @@ function createSortableHeader(label, key, currentSortConfig) {
     th.className = "p-4 text-left font-semibold uppercase tracking-wider text-xs cursor-pointer";
     th.dataset.key = key;
     const iconContainer = currentSortConfig.key === key ? `<i data-lucide="${currentSortConfig.direction === 'asc' ? 'chevron-up' : 'chevron-down'}" class="h-4 w-4 ml-1"></i>` : '<div class="h-4 w-4 ml-1 opacity-20"><i data-lucide="chevron-down"></i></div>';
-    th.innerHTML = `<div class="flex items-center"><span class="math-inline">\{label\}</span>{iconContainer}</div>`;
+    th.innerHTML = `<div class="flex items-center">${label}${iconContainer}</div>`;
     th.addEventListener('click', () => {
         dashboardSortConfig.direction = (currentSortConfig.key === key && currentSortConfig.direction === 'asc') ? 'desc' : 'asc';
         dashboardSortConfig.key = key;
@@ -63,4 +63,402 @@ function renderDashboardTable() {
         row.innerHTML = `
             <td class="p-4 whitespace-nowrap">${itemDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
             ${state.profile && state.profile.role === 'admin' ? `<td class="p-4 whitespace-nowrap">${item.profiles.full_name}</td>` : ''}
-            <td class="p-4 whitespace-nowrap"><span class="math-inline">\{item\.live\_duration\_hours \!\=\= null ? item\.live\_duration\_hours\.toFixed\(2\) \: 'N/A'\} hrs</td\>
+            <td class="p-4 whitespace-nowrap">${item.live_duration_hours !== null ? item.live_duration_hours.toFixed(2) : 'N/A'} hrs</td>
+            <td class="p-4 whitespace-nowrap">${item.branded_items_sold !== null ? item.branded_items_sold : 'N/A'}</td>
+            <td class="p-4 whitespace-nowrap">${item.free_size_items_sold !== null ? item.free_size_items_sold : 'N/A'}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to render dashboard pagination controls
+function renderDashboardPagination() {
+    const paginationControls = document.getElementById('pagination-controls');
+    const pageInfo = document.getElementById('page-info');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+
+    if (!paginationControls || !pageInfo || !prevPageBtn || !nextPageBtn) {
+        console.error("Dashboard pagination elements not found in renderDashboardPagination.");
+        return;
+    }
+
+    const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage);
+    paginationControls.style.display = totalPages > 1 ? 'flex' : 'none';
+    pageInfo.innerHTML = `Page <strong>${dashboardCurrentPage}</strong> of <strong>${totalPages}</strong>`;
+    prevPageBtn.disabled = dashboardCurrentPage === 1;
+    nextPageBtn.disabled = dashboardCurrentPage === totalPages;
+}
+
+// Helper to display bonus details in a modal
+async function showBonusDetailsModalForDashboard(ruleId) {
+    showRuleSetDetailsModal(ruleId); // Calls the function imported from rules.js
+}
+
+// Function to render bonus/incentive cards
+async function renderBonusCards(performanceData, filterRange) {
+    const bonusCardsContainer = document.getElementById('bonus-cards-container');
+    if (!bonusCardsContainer) {
+        console.error("Bonus cards container not found in renderBonusCards.");
+        return;
+    }
+
+    const { data: bonusRuleSets, error: rsError } = await _supabase
+        .from('rule_sets')
+        .select(`id, name, description, effective_start_date, effective_end_date, is_active,
+                     rule_types(name), rules (id, rule_name, criteria_field, operator, target_value, payout_type, payout_value)`)
+        .eq('is_active', true)
+        .in('rule_type_id', (await _supabase.from('rule_types').select('id').eq('name', 'Bonus')).data.map(t => t.id))
+        .filter('effective_start_date', 'lte', new Date().toISOString())
+        .or('effective_end_date.is.null,effective_end_date.gte.' + new Date().toISOString());
+
+    if (rsError) {
+        console.error('Error fetching bonus rule sets for calculation:', rsError.message);
+        bonusCardsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Error loading incentives.</p>`;
+        return;
+    }
+
+    if (bonusRuleSets.length === 0) {
+        bonusCardsContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">No active bonus incentives at the moment.</p>`;
+        return;
+    }
+
+    const metrics = performanceData.reduce((acc, item) => {
+        acc.live_hours = (acc.live_hours || 0) + (item.live_duration_hours || 0);
+        acc.branded_items = (acc.branded_items || 0) + (item.branded_items_sold || 0);
+        acc.free_size_items = (acc.free_size_items || 0) + (item.free_size_items_sold || 0);
+        acc.total_revenue = (acc.total_revenue || 0) + (item.total_revenue || 0);
+        return acc;
+    }, { duration: 0, basePay: 0, branded_items: 0, free_size_items: 0, total_revenue: 0 });
+
+    bonusCardsContainer.innerHTML = bonusRuleSets.map(ruleSet => {
+        let totalEarnedInSet = 0;
+        let allRulesInSetMet = true;
+
+        if (ruleSet.rules && ruleSet.rules.length > 0) {
+            ruleSet.rules.forEach(rule => {
+                const metricValue = metrics[rule.criteria_field] || 0;
+                let ruleMet = false;
+
+                switch (rule.operator) {
+                    case '>=': ruleMet = (metricValue >= rule.target_value); break;
+                    case '>': ruleMet = (metricValue > rule.target_value); break;
+                    case '=': ruleMet = (metricValue === rule.target_value); break;
+                    case '<': ruleMet = (metricValue < rule.target_value); break;
+                    case '<=': ruleMet = (metricValue <= rule.target_value); break;
+                }
+
+                if (!ruleMet) {
+                    allRulesInSetMet = false;
+                } else {
+                    if (rule.payout_type === 'fixed_amount') {
+                        payoutForThisSet += rule.payout_value;
+                    } else if (rule.payout_type === 'percentage') {
+                        payoutForThisSet += (metrics.total_revenue || 0) * (rule.payout_value / 100);
+                    } else if (rule.payout_type === 'per_unit') {
+                        payoutForThisSet += (metrics.branded_items + metrics.free_size_items) * rule.payout_value;
+                    }
+                }
+            });
+        } else {
+            allRulesInSetMet = false;
+        }
+
+        if (allRulesInSetMet) {
+            totalEarnedInSet += payoutForThisSet;
+        }
+
+        return `
+            <div class="clay-card p-4 cursor-pointer" data-rulesetid="${ruleSet.id}">
+                <div class="flex justify-between items-start">
+                    <h4 class="font-playfair font-bold text-lg mb-2">${ruleSet.name}</h4>
+                    <div class="tooltip-container">
+                        <i data-lucide="info" class="h-5 w-5 text-gray-500"></i>
+                        <span class="tooltip-text">
+                            Type: ${ruleSet.rule_types.name}<br>
+                            Status: ${ruleSet.is_active ? 'Active' : 'Inactive'}<br>
+                            Effective: ${new Date(ruleSet.effective_start_date).toLocaleDateString()} to ${ruleSet.effective_end_date ? new Date(ruleSet.effective_end_date).toLocaleDateString() : 'Indefinite'}<br>
+                            Rules: ${ruleSet.rules && ruleSet.rules.length > 0 ? ruleSet.rules.map(rule => `${rule.rule_name} (${rule.criteria_field.replace(/_/g, ' ')} ${rule.operator} ${rule.target_value})`).join('<br>') : 'No rules defined.'}
+                        </span>
+                    </div>
+                </div>
+                <p class="font-bold text-3xl" style="color: #831843;">${state.globalSettings.default_currency_symbol || '₱'}${totalEarnedInSet.toFixed(2)}</p>
+                <p class="text-xs text-gray-500 mt-1">${ruleSet.rule_types.name} Incentive</p>
+            </div>
+        `;
+    }).join('');
+
+    document.querySelectorAll('[data-rulesetid]').forEach(card => {
+        if (card._hasRulesetDetailsListener) {
+            card.removeEventListener('click', card._hasRulesetDetailsListener);
+        }
+        const handler = (e) => showBonusDetailsModalForDashboard(e.currentTarget.dataset.rulesetid);
+        card.addEventListener('click', handler);
+        card._hasRulesetDetailsListener = handler;
+    });
+    window.lucide.createIcons();
+}
+
+// Function that orchestrates fetching and rendering dashboard data
+async function updateDashboardView() {
+    const { profile } = state;
+    const sellerFilter = document.getElementById('seller-filter');
+    const dateFilter = document.getElementById('date-filter');
+    const customDateFilters = document.getElementById('custom-date-filters');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+
+    const finalPayLabel = document.getElementById('final-pay-label');
+    const liveDurationLabel = document.getElementById('live-duration-label');
+    const basePayLabel = document.getElementById('base-pay-label');
+    const brandedSoldLabel = document.getElementById('branded-sold-label');
+    const freeSizeSoldLabel = document.getElementById('free-size-sold-label');
+
+    const finalPayEl = document.getElementById('final-pay');
+    const liveDurationEl = document.getElementById('live-duration');
+    const basePayEl = document.getElementById('base-pay');
+    const brandedSoldEl = document.getElementById('branded-sold');
+    const freeSizeSoldEl = document.getElementById('free-size-sold');
+    const loggedEntriesTitle = document.getElementById('logged-entries-title');
+    const bonusCardsContainer = document.getElementById('bonus-cards-container');
+
+    const baseHourlyPay = state.globalSettings.base_hourly_pay_seller || 0;
+    const defaultCurrencySymbol = state.globalSettings.default_currency_symbol || '₱';
+
+    let query = _supabase.from('logged_sessions').select('*, profiles!seller_id(full_name)');
+
+    if (state.profile.role === 'seller') {
+        query = query.eq('seller_id', profile.id);
+    } else if (sellerFilter) {
+        const selectedSellerId = sellerFilter.value;
+        if (selectedSellerId !== 'all') {
+            query = query.eq('seller_id', selectedSellerId);
+        }
+    }
+
+    let range = { start: null, end: null };
+    if (dateFilter) {
+        switch (dateFilter.value) {
+            case 'This Week': range = getWeekRange('this'); break;
+            case 'Last Week': range = getWeekRange('last'); break;
+            case 'This Month': range = getMonthRange('this'); break;
+            case 'Custom':
+                if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+                    range.start = parseDateAsUTC(startDateInput.value);
+                    range.end = parseDateAsUTC(endDateInput.value);
+                    if (range.end) range.end.setUTCHours(23, 59, 59, 999);
+                }
+                break;
+            default: break;
+        }
+    }
+    if (range.start) query = query.gte('session_start_time', range.start.toISOString());
+    if (range.end) query = query.lte('session_start_time', range.end.toISOString());
+
+    const { data, error } = await query;
+    if (error) { showAlert('Error', 'Could not fetch session data: ' + error.message); return; }
+
+    dashboardFilteredData = data;
+
+    const metrics = dashboardFilteredData.reduce((acc, item) => {
+        acc.duration += item.live_duration_hours || 0;
+        acc.basePay += (item.live_duration_hours || 0) * baseHourlyPay;
+        acc.branded_items += item.branded_items_sold || 0;
+        acc.free_size_items += item.free_size_items_sold || 0;
+        acc.total_revenue += item.total_revenue || 0;
+        return acc;
+    }, { duration: 0, basePay: 0, branded_items: 0, free_size_items: 0, total_revenue: 0 });
+
+    let totalBonusAmount = 0;
+    const { data: activeBonusRuleSets, error: ruleSetError } = await _supabase
+        .from('rule_sets')
+        .select(`
+            rules (criteria_field, operator, target_value, payout_type, payout_value)
+        `)
+        .eq('is_active', true)
+        .in('rule_type_id', (await _supabase.from('rule_types').select('id').eq('name', 'Bonus')).data.map(t => t.id))
+        .filter('effective_start_date', 'lte', new Date().toISOString())
+        .or('effective_end_date.is.null,effective_end_date.gte.' + new Date().toISOString());
+
+    if (ruleSetError) {
+        console.error('Error fetching active bonus rule sets for calculation:', ruleSetError.message);
+    } else if (activeBonusRuleSets) {
+        activeBonusRuleSets.forEach(ruleSet => {
+            let allRulesInSetMet = true;
+            let payoutForThisSet = 0;
+
+            if (ruleSet.rules && ruleSet.rules.length > 0) {
+                ruleSet.rules.forEach(rule => {
+                    const metricValue = metrics[rule.criteria_field] || 0;
+                    let ruleMet = false;
+
+                    switch (rule.operator) {
+                        case '>=': ruleMet = (metricValue >= rule.target_value); break;
+                        case '>': ruleMet = (metricValue > rule.target_value); break;
+                        case '=': ruleMet = (metricValue === rule.target_value); break;
+                        case '<': ruleMet = (metricValue < rule.target_value); break;
+                        case '<=': ruleMet = (metricValue <= rule.target_value); break;
+                    }
+
+                    if (!ruleMet) {
+                        allRulesInSetMet = false;
+                    } else {
+                        if (rule.payout_type === 'fixed_amount') {
+                            payoutForThisSet += rule.payout_value;
+                        } else if (rule.payout_type === 'percentage') {
+                            payoutForThisSet += (metrics.total_revenue || 0) * (rule.payout_value / 100);
+                        } else if (rule.payout_type === 'per_unit') {
+                            payoutForThisSet += (metrics.branded_items + metrics.free_size_items) * rule.payout_value;
+                        }
+                    }
+                });
+            } else {
+                allRulesInSetMet = false;
+            }
+
+            if (allRulesInSetMet) {
+                totalBonusAmount += payoutForThisSet;
+            }
+        });
+    }
+
+    if (bonusCardsContainer) {
+        await renderBonusCards(dashboardFilteredData, range);
+    } else {
+        console.log("Bonus cards container not found (likely seller dashboard), skipping renderBonusCards.");
+    }
+
+    const finalPay = metrics.basePay + totalBonusAmount;
+    const sellerName = (state.profile.role === 'admin' && sellerFilter && sellerFilter.value !== 'all') ? sellerFilter.options[sellerFilter.selectedIndex].text : profile.full_name;
+    const isAllSellers = state.profile.role === 'admin' && sellerFilter && sellerFilter.value === 'all';
+
+    if (finalPayLabel) finalPayLabel.textContent = "Final Pay";
+    if (liveDurationLabel) liveDurationLabel.textContent = "Live Duration";
+    if (basePayLabel) basePayLabel.textContent = "Base Pay";
+    if (brandedSoldLabel) brandedSoldLabel.textContent = "Branded Sold";
+    if (freeSizeSoldLabel) freeSizeSoldLabel.textContent = "Free Size Sold";
+    if (loggedEntriesTitle) loggedEntriesTitle.textContent = isAllSellers ? 'All Logged Entries' : `${sellerName}'s Logged Entries`;
+
+    if (finalPayEl) finalPayEl.textContent = `${defaultCurrencySymbol}${finalPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    if (liveDurationEl) liveDurationEl.innerHTML = `${metrics.duration.toFixed(1)} <span class="text-xl align-baseline">hrs</span>`;
+    if (basePayEl) basePayEl.textContent = `${defaultCurrencySymbol}${metrics.basePay.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    if (brandedSoldEl) brandedSoldEl.textContent = metrics.branded_items.toLocaleString();
+    if (freeSizeSoldEl) freeSizeSoldEl.textContent = metrics.free_size_items.toLocaleString();
+
+    dashboardFilteredData.sort((a, b) => {
+        const aValue = a[dashboardSortConfig.key];
+        const bValue = b[dashboardSortConfig.key];
+        if (aValue < bValue) return dashboardSortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return dashboardSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    renderDashboardTable();
+    renderDashboardPagination();
+
+    const setupDashboardListeners = () => {
+        if (dateFilter && !dateFilter._hasDashboardListeners) {
+            dateFilter.addEventListener('change', () => {
+                const showCustom = dateFilter.value === 'Custom';
+                if (customDateFilters) customDateFilters.classList.toggle('hidden', !showCustom);
+                if (state.profile.role === 'seller' && customDateFilters) customDateFilters.classList.toggle('sm:flex', showCustom);
+                if (!showCustom) { dashboardCurrentPage = 1; updateDashboardView(); }
+            });
+            if (startDateInput) startDateInput.addEventListener('change', () => { dashboardCurrentPage = 1; updateDashboardView(); });
+            if (endDateInput) endDateInput.addEventListener('change', () => { dashboardCurrentPage = 1; updateDashboardView(); });
+
+            const prevPageBtn = document.getElementById('prev-page');
+            const nextPageBtn = document.getElementById('next-page');
+            if (prevPageBtn) prevPageBtn.addEventListener('click', () => { if (dashboardCurrentPage > 1) { dashboardCurrentPage--; renderDashboardTable(); renderDashboardPagination(); } });
+            if (nextPageBtn) nextPageBtn.addEventListener('click', () => { const totalPages = Math.ceil(dashboardFilteredData.length / dashboardEntriesPerPage); if (dashboardCurrentPage < totalPages) { dashboardCurrentPage++; renderDashboardTable(); renderDashboardPagination(); } });
+
+            dateFilter._hasDashboardListeners = true;
+        }
+
+        if (role === 'seller') {
+            const logSessionButton = document.getElementById('open-log-session-modal');
+            if (logSessionButton && !logSessionButton._hasLogSessionListeners) {
+                const logSessionModal = document.getElementById('log-session-modal');
+                const sessionLogForm = document.getElementById('session-log-form');
+
+                if (logSessionModal && sessionLogForm) {
+                    logSessionButton.addEventListener('click', () => {
+                        sessionLogForm.reset();
+                        logSessionModal.classList.remove('hidden');
+                    });
+                    if (document.getElementById('cancel-log-session-btn')) {
+                        document.getElementById('cancel-log-session-btn').addEventListener('click', () => {
+                            logSessionModal.classList.add('hidden');
+                        });
+                    }
+
+                    if (sessionLogForm._hasLogSubmitListener) {
+                        sessionLogForm.removeEventListener('submit', sessionLogForm._hasLogSubmitListener);
+                    }
+                    const handleSubmit = async (e) => {
+                        e.preventDefault();
+                        const submitBtn = e.target.querySelector('button[type="submit"]');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Submitting Log...';
+
+                        const startStr = document.getElementById('session-start').value;
+                        const endStr = document.getElementById('session-end').value;
+                        const branded = parseInt(document.getElementById('branded-items').value) || 0;
+                        const freeSize = parseInt(document.getElementById('free-size-items').value) || 0;
+
+                        if (!startStr || !endStr) {
+                            showAlert('Error', 'Please select both a start and end time.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Submit Log';
+                            return;
+                        }
+                        const startDate = new Date(startStr);
+                        const endDate = new Date(endStr);
+                        if (endDate <= startDate) {
+                            showAlert('Error', 'End time must be after the start time.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Submit Log';
+                            return;
+                        }
+                        const duration = (endDate - startDate) / (1000 * 60 * 60);
+
+                        const newEntry = {
+                            session_start_time: startDate.toISOString(),
+                            session_end_time: endDate.toISOString(),
+                            live_duration_hours: duration,
+                            branded_items_sold: branded,
+                            free_size_items_sold: freeSize,
+                            seller_id: profile.id
+                        };
+                        const { error } = await _supabase.from('logged_sessions').insert(newEntry);
+                        if (error) {
+                            showAlert('Error', 'Could not log session: ' + error.message);
+                        } else {
+                            updateDashboardView();
+                            logSessionModal.classList.add('hidden');
+                            showAlert('Success', 'Your session has been logged successfully!');
+                        }
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Log';
+                    };
+                    sessionLogForm.addEventListener('submit', handleSubmit);
+                    sessionLogForm._hasLogSubmitListener = handleSubmit;
+                }
+                logSessionButton._hasLogSessionListeners = true;
+            }
+        }
+    };
+    setupDashboardListeners(); // Call to set up listeners for elements inside this current dashboard view
+
+    if (role === 'admin' && sellerFilter && !sellerFilter._hasAdminSellerFilterListener) {
+        const { data: sellers, error } = await _supabase.from('profiles').select('id, full_name').eq('role', 'seller').order('full_name');
+        if (sellers) {
+            sellerFilter.innerHTML = `<option value="all">All Sellers</option>` + sellers.map(s => `<option value="${s.id}">${s.full_name}</option>`).join('');
+        }
+        sellerFilter.addEventListener('change', () => { dashboardCurrentPage = 1; updateDashboardView(); });
+        sellerFilter._hasAdminSellerFilterListener = true;
+    }
+
+    await updateDashboardView();
+
+    setLoading(false);
+}
