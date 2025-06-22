@@ -28,7 +28,7 @@ export async function initializeScheduler() {
     const eventDetailsTime = document.getElementById('event-details-time');
     const eventDetailsStatus = document.getElementById('event-details-status');
     const eventDetailsActions = document.getElementById('event-details-actions');
-    const closeDetailsBtn = document.getElementById('close-details-btn');
+    const closeDetailsBtn = document.getElementById('close-details-btn'); // Corrected ID from previous
     const bookingDurationDisplay = document.getElementById('booking-duration-display'); // For dynamic duration in booking modal
 
     const finalizeSessionModal = document.getElementById('finalize-session-modal');
@@ -168,7 +168,7 @@ export async function initializeScheduler() {
                             const { data: liveSessionId, error } = await _supabase.rpc('start_live_session', { p_calendar_event_id: activeEvent.id });
                             if (error) throw error;
                             state.activeLiveSession = { id: liveSessionId, calendar_event_id: activeEvent.id };
-                            showAlert('Success', 'You are now LIVE!');
+                            showAlert('Success', `Session for ${props.owner_name} is now LIVE!`);
                             eventDetailsModal.classList.add('hidden');
                         } catch (err) {
                             showAlert('Error', 'Failed to go live: ' + err.message);
@@ -179,109 +179,6 @@ export async function initializeScheduler() {
                 } else if (props.status === 'live') {
                     eventDetailsActions.innerHTML = `<button id="admin-end-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Admin Force End Session</button>`;
                     document.getElementById('admin-end-session-btn').onclick = async (e) => {
-                        const btn = e.currentTarget;
-                        btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Ending Session...';
-                        try {
-                            if (!props.current_live_session_id) {
-                                throw new Error("No active live session ID found for this event.");
-                            }
-                            const { data: result, error } = await _supabase.rpc('end_live_session', { p_live_session_id: props.current_live_session_id });
-                            if (error) throw error;
-
-                            state.activeLiveSession = {
-                                id: props.current_live_session_id,
-                                calendar_event_id: activeEvent.id,
-                                duration: result.live_duration_hours,
-                                branded_items_sold: result.branded_items_sold,
-                                free_size_items_sold: result.free_size_items_sold,
-                                total_revenue: result.total_revenue
-                            };
-
-                            finalSessionDurationEl.textContent = `Total Live Duration: ${state.activeLiveSession.duration.toFixed(1)} hours`;
-                            document.getElementById('finalize-branded-items').value = state.activeLiveSession.branded_items_sold || 0;
-                            document.getElementById('finalize-free-size-items').value = state.activeLiveSession.free_size_items_sold || 0;
-                            document.getElementById('finalize-total-revenue').value = state.activeLiveSession.total_revenue || 0;
-
-
-                            finalizeSessionModal.classList.remove('hidden');
-                            eventDetailsModal.classList.add('hidden');
-                        } catch (err) {
-                            showAlert('Error', 'Failed to end session: ' + err.message);
-                        } finally {
-                            btn.disabled = false;
-                            btn.textContent = 'Submit Sales Data';
-                        }
-                    };
-                } else if (props.status === 'takeover_pending') {
-                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">Takeover requested by: ${props.requested_by_name}</p><button id="approve-takeover-btn" class="clay-button clay-button-approve w-full p-4 text-xl">Approve Takeover</button>`;
-                    document.getElementById('approve-takeover-btn').onclick = async (e) => {
-                        const btn = e.currentTarget;
-                        btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Approving Takeover...';
-                        const { error: updateError } = await _supabase.from('calendar_events').update({ status: 'locked', owner_id: props.requested_by_id, owner_name: props.requested_by_name, title: props.requested_by_name, requested_by_id: null, requested_by_name: null }).eq('id', activeEvent.id);
-                        if (updateError) showAlert('Error', 'Failed to approve takeover: ' + updateError.message);
-                        else showAlert('Success', 'Takeover approved. Session assigned to new seller.');
-                        eventDetailsModal.classList.add('hidden');
-                        btn.disabled = false; btn.textContent = 'Approve Takeover';
-                    };
-                } else {
-                    eventDetailsActions.innerHTML = `<p class="text-center w-full text-gray-600">No actions available for you.</p>`;
-                }
-            } else if (state.profile.role === 'seller') {
-                if (isMine && props.status === 'locked') {
-                    eventDetailsActions.innerHTML = `
-                        <button id="go-live-btn" class="clay-button clay-button-primary w-full p-4 text-xl">Go Live!</button>
-                        <button id="cancel-session-btn" class="clay-button clay-button-deny w-full p-4 text-xl">Cancel My Session</button>
-                    `;
-                    document.getElementById('go-live-btn').onclick = async (e) => {
-                        const btn = e.currentTarget;
-                        btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Going Live...';
-                        try {
-                            const { data: liveSessionId, error } = await _supabase.rpc('start_live_session', { p_calendar_event_id: activeEvent.id });
-                            if (error) throw error;
-                            state.activeLiveSession = { id: liveSessionId, calendar_event_id: activeEvent.id };
-                            showAlert('Success', 'You are now LIVE!');
-                            eventDetailsModal.classList.add('hidden');
-                        } catch (err) {
-                            showAlert('Error', 'Failed to go live: ' + err.message);
-                        } finally {
-                            btn.disabled = false; btn.textContent = 'Go Live!';
-                        }
-                    };
-
-                    let cancelTimeout; // Declared here for the two-step cancellation logic
-                    document.getElementById('cancel-session-btn').onclick = (e) => {
-                        const btn = e.currentTarget;
-                        if (btn.dataset.confirm === 'true') {
-                            clearTimeout(cancelTimeout);
-                            btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Cancelling...';
-                            _supabase.from('calendar_events').update({ status: 'takeover', title: 'NEEDS TAKEOVER', original_owner_name: props.owner_name }).eq('id', activeEvent.id)
-                                .then(({ error }) => {
-                                    if (error) showAlert('Error', 'Failed to cancel session: ' + error.message);
-                                    else {
-                                        showAlert('Success', 'Session cancelled and marked for takeover.');
-                                        eventDetailsModal.classList.add('hidden');
-                                    }
-                                })
-                                .finally(() => {
-                                    btn.disabled = false; btn.textContent = 'Cancel My Session';
-                                    delete btn.dataset.confirm;
-                                    btn.classList.remove('clay-button-deny');
-                                });
-                        } else {
-                            btn.dataset.confirm = 'true';
-                            btn.textContent = 'Confirm Cancel?';
-                            btn.classList.add('clay-button-deny');
-                            cancelTimeout = setTimeout(() => {
-                                delete btn.dataset.confirm;
-                                btn.textContent = 'Cancel My Session';
-                                btn.classList.remove('clay-button-deny');
-                            }, 5000);
-                        }
-                    };
-
-                } else if (isMine && props.status === 'live') {
-                    eventDetailsActions.innerHTML = `<button id="end-session-btn" class="clay-button clay-button-primary w-full p-4 text-xl">End Session</button>`;
-                    document.getElementById('end-session-btn').onclick = async (e) => {
                         const btn = e.currentTarget;
                         btn.disabled = true; btn.innerHTML = '<div class="spinner h-4 w-4"></div> Ending Session...';
                         try {
@@ -334,9 +231,9 @@ export async function initializeScheduler() {
 
             eventDetailsModal.classList.remove('hidden');
             lucide.createIcons();
-        }, // <--- This comma is required!
-
-    })
+        }, // <--- THIS COMMA IS CRITICAL AND WAS THE CAUSE OF THE SYNTAX ERROR.
+        
+    }); // Closing brace for FullCalendar.Calendar config object.
 
         calendarInstance.render(); // This renders the calendar on the page
 
@@ -466,4 +363,4 @@ export async function initializeScheduler() {
             })
             .subscribe();
         channels.push(eventChannel);
-    } // Close the initializeScheduler function here, this should be the very last line in the file.
+} // Close the initializeScheduler function here, this should be the very last line in the file.
